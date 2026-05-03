@@ -347,6 +347,15 @@
           <th>用户</th><th>文件名</th><th>大小</th><th>下载</th><th>时间</th><th>操作</th>
         </tr></thead><tbody id="adminUploadedFilesTable"></tbody></table>
       </div>
+      <div style="margin-top:12px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <span style="font-size:0.82rem;color:var(--dim);font-weight:600">📤 公开分享文件</span>
+          <button class="btn btn-sm btn-outline" onclick="loadAdminPublicFiles()">刷新</button>
+        </div>
+        <table class="user-table"><thead><tr>
+          <th>Token</th><th>文件名</th><th>大小</th><th>下载</th><th>密码</th><th>过期</th><th>操作</th>
+        </tr></thead><tbody id="adminPublicFilesTable"></tbody></table>
+      </div>
     </div>
 
     <!-- System Tab -->
@@ -559,7 +568,7 @@ function adminTab(tab){
   ['Dashboard','Users','Files','System'].forEach(t=>{const el=$('admin'+t);if(el)el.style.display=t.toLowerCase()===tab?'block':'none'});
   if(tab==='dashboard')loadDashboard();
   if(tab==='users')loadAdminUsers();
-  if(tab==='files'){loadAdminFiles();loadAdminUploadedFiles();}
+  if(tab==='files'){loadAdminFiles();loadAdminUploadedFiles();loadAdminPublicFiles();}
   if(tab==='system')loadSystemTab();
 }
 
@@ -750,6 +759,27 @@ async function delAdminUploadedFile(fid,fname){
   if(!confirm('Delete uploaded file: '+fname+'?'))return;
   await api('DELETE','/api/admin/user-files/'+fid);
   showToast('Deleted');loadAdminUploadedFiles();
+}
+async function loadAdminPublicFiles(){
+  try{
+    const files=await api('GET','/api/admin/public-files');
+    const el=document.getElementById('adminPublicFilesTable');
+    if(!el)return;
+    el.innerHTML=files.map(f=>'<tr>
+      <td style="font-size:0.78rem;font-family:monospace">'+f.token+'</td>
+      <td style="font-size:0.85rem">'+esc(f.original_name)+'</td>
+      <td>'+(f.size_bytes/1024).toFixed(1)+'KB</td>
+      <td>'+f.download_count+'</td>
+      <td>'+(f.has_password?'<span style="color:var(--orange)">有</span>':'无')+'</td>
+      <td style="font-size:0.78rem">'+(f.expires_at?new Date(f.expires_at+'Z').toLocaleString():'永不过期')+'</td>
+      <td><button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delAdminPublicFile(''+f.token+'',''+esc(f.original_name)+'')">删除</button></td>
+    </tr>').join('')||'<tr><td colspan="7">No public files</td></tr>';
+  }catch(e){}
+}
+async function delAdminPublicFile(token,fname){
+  if(!confirm('Delete public file: '+fname+'?'))return;
+  await api('DELETE','/api/admin/public-files/'+token);
+  showToast('Deleted');loadAdminPublicFiles();
 }
 async function saveSettings(){
   const s={};

@@ -9,7 +9,7 @@ import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile
+from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -540,7 +540,11 @@ async def serve_upload_page():
 
 
 @app.post("/api/public/upload")
-async def public_upload(file: UploadFile, db: AsyncSession = Depends(get_db)):
+async def public_upload(
+    file: UploadFile,
+    password: str = Form(""),
+    db: AsyncSession = Depends(get_db)
+):
     content = await file.read()
     if len(content) > 100 * 1024 * 1024:  # 100MB max
         raise HTTPException(400, "File too large (max 100MB)")
@@ -549,9 +553,14 @@ async def public_upload(file: UploadFile, db: AsyncSession = Depends(get_db)):
     stored_name = f"{token}_{file.filename}"
     (PUBLIC_UPLOAD_DIR / stored_name).write_bytes(content)
 
+    pw_hash = ""
+    if password:
+        pw_hash = hash_password(password)
+
     pf = PublicFile(
         token=token, filename=stored_name,
         original_name=file.filename, size_bytes=len(content),
+        password_hash=pw_hash,
         expires_at=datetime.utcnow() + timedelta(days=7)
     )
     db.add(pf)
@@ -563,7 +572,8 @@ async def public_upload(file: UploadFile, db: AsyncSession = Depends(get_db)):
         "token": token,
         "url": download_url,
         "expires_in": "7 days",
-        "size_bytes": len(content)
+        "size_bytes": len(content),
+        "has_password": bool(password)
     }
 
 
@@ -573,6 +583,51 @@ async def download_public_file(token: str, db: AsyncSession = Depends(get_db)):
     pf = result.scalar_one_or_none()
     if not pf or (pf.expires_at and pf.expires_at < datetime.utcnow()):
         raise HTTPException(404, "File not found or expired")
+
+    if pf.password_hash:
+        return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>文件下载 - 需要密码</title>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{font:16px/1.6 -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:#0d1117;color:#e6edf3;display:flex;align-items:center;justify-content:center;min-height:100vh}}
+.card{{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:40px 32px;width:420px;max-width:95vw;text-align:center}}
+h2{{color:#58a6ff;margin-bottom:8px;font-size:1.4rem}}
+.sub{{color:#8b949e;margin-bottom:24px;font-size:0.9rem}}
+input{{width:100%;height:44px;padding:0 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:1rem;margin-bottom:16px;outline:none}}
+input:focus{{border-color:#58a6ff}}
+button{{width:100%;height:44px;background:#2ea043;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer}}
+button:hover{{filter:brightness(1.12)}}
+.err{{color:#f85149;font-size:0.85rem;margin-top:8px;display:none}}
+</style></head>
+<body><div class="card">
+<h2>📎 {pf.original_name}</h2>
+<p class="sub">此文件已加密，请输入密码下载</p>
+<form onsubmit="event.preventDefault();fetch(location.href,{{method:'POST',headers:{{'Content-Type':'application/x-www-form-urlencoded'}},body:'password='+encodeURIComponent(document.querySelector('input').value)}}).then(r=>{{if(!r.ok)return r.text().then(t=>{{document.querySelector('.err').textContent=t;document.querySelector('.err').style.display='block'}});return r.blob()}}).then(b=>{{if(!b)return;const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='{pf.original_name}';a.click()}}).catch(e=>{{const el=document.querySelector('.err');el.textContent=e.message;el.style.display='block'}})">
+<input type="password" name="password" placeholder="输入密码" autofocus>
+<button type="submit">下载文件</button>
+<div class="err"></div>
+</form></div></body></html>""")
+
+    pf.download_count += 1
+    await db.commit()
+
+    file_path = PUBLIC_UPLOAD_DIR / pf.filename
+    if not file_path.exists():
+        raise HTTPException(404, "File not found on disk")
+
+    return FileResponse(file_path, media_type="application/octet-stream", filename=pf.original_name)
+
+
+@app.post("/dl/p/{token}")
+async def download_public_file_post(token: str, password: str = Form(""), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PublicFile).where(PublicFile.token == token))
+    pf = result.scalar_one_or_none()
+    if not pf or (pf.expires_at and pf.expires_at < datetime.utcnow()):
+        raise HTTPException(404, "File not found or expired")
+
+    if pf.password_hash and not verify_password(password, pf.password_hash):
+        raise HTTPException(403, "密码错误")
 
     pf.download_count += 1
     await db.commit()
@@ -814,6 +869,37 @@ async def admin_delete_user_file(file_id: str, admin: User = Depends(get_admin),
     for link in links.scalars().all():
         await db.delete(link)
     await db.delete(uf)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/admin/public-files")
+async def admin_public_files(admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PublicFile).order_by(PublicFile.created_at.desc()).limit(100)
+    )
+    rows = result.scalars().all()
+    return [
+        {
+            "token": pf.token, "original_name": pf.original_name,
+            "size_bytes": pf.size_bytes, "download_count": pf.download_count,
+            "has_password": bool(pf.password_hash),
+            "expires_at": str(pf.expires_at) if pf.expires_at else None,
+            "url": f"{_base_url()}/dl/p/{pf.token}",
+            "created_at": str(pf.created_at)
+        }
+        for pf in rows
+    ]
+
+
+@app.delete("/api/admin/public-files/{token}")
+async def admin_delete_public_file(token: str, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PublicFile).where(PublicFile.token == token))
+    pf = result.scalar_one_or_none()
+    if not pf:
+        raise HTTPException(404, "File not found")
+    (PUBLIC_UPLOAD_DIR / pf.filename).unlink(missing_ok=True)
+    await db.delete(pf)
     await db.commit()
     return {"ok": True}
 

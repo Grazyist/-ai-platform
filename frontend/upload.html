@@ -56,6 +56,11 @@
 
   <input type="file" id="fileInput" style="display:none" onchange="handleFile(this.files[0])">
 
+  <div style="margin-bottom:16px">
+    <label style="font-size:0.85rem;color:var(--dim);display:block;margin-bottom:4px">密码保护（可选）</label>
+    <input type="text" id="passwordInput" placeholder="留空则不加密" style="width:100%;height:42px;padding:0 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.9rem;outline:none">
+  </div>
+
   <div class="file-info" id="fileInfo">
     <div class="fname" id="fileName"></div>
     <div class="fsize" id="fileSize"></div>
@@ -106,6 +111,8 @@ async function handleFile(file) {
 
   const fd = new FormData();
   fd.append('file', file);
+  const pw = document.getElementById('passwordInput').value.trim();
+  if(pw) fd.append('password', pw);
 
   const xhr = new XMLHttpRequest();
   xhr.upload.addEventListener('progress', e => {
@@ -120,6 +127,11 @@ async function handleFile(file) {
       const data = JSON.parse(xhr.responseText);
       if (xhr.status === 200 && data.url) {
         document.getElementById('linkInput').value = data.url;
+        if(data.has_password){
+          document.querySelector('.result .label').textContent = '✅ 上传成功（已加密）！复制链接分享：';
+        } else {
+          document.querySelector('.result .label').textContent = '✅ 上传成功！复制链接分享：';
+        }
         document.getElementById('result').style.display = 'block';
       } else {
         showError(data.detail || 'Upload failed');

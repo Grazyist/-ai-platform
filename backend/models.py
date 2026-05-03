@@ -143,5 +143,6 @@ class PublicFile(Base):
     original_name = Column(String(200), nullable=False)
     size_bytes = Column(Integer, default=0)
     download_count = Column(Integer, default=0)
+    password_hash = Column(String(200), default="")
     expires_at = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
