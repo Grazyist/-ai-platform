@@ -13,11 +13,32 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 PRICE_INPUT_1K = 0.00014   # $0.14 / 1M tokens
 PRICE_OUTPUT_1K = 0.00028  # $0.28 / 1M tokens
 
+# Model tiers
+MODELS = {
+    "free": [
+        {"id": "deepseek-chat", "name": "DeepSeek Chat", "desc": "General purpose, fast", "multiplier": 1.0},
+    ],
+    "paid": [
+        {"id": "deepseek-chat", "name": "DeepSeek Chat", "desc": "General purpose, fast", "multiplier": 1.0},
+        {"id": "deepseek-reasoner", "name": "DeepSeek Reasoner", "desc": "Advanced reasoning, code, math", "multiplier": 4.0},
+    ]
+}
+
+# Generate-able file types
+FILE_TYPES = {
+    "code": {"name": "Code Project", "ext": ".py/.js/.html", "icon": "💻"},
+    "ppt": {"name": "PowerPoint", "ext": ".pptx", "icon": "📊"},
+    "doc": {"name": "Word Document", "ext": ".docx", "icon": "📄"},
+    "html": {"name": "HTML Page", "ext": ".html", "icon": "🌐"},
+    "pdf": {"name": "PDF Report", "ext": ".pdf", "icon": "📕"},
+    "other": {"name": "Other", "ext": "*", "icon": "📦"},
+}
+
 # Subscription tiers (CNY)
 PLANS = {
-    "free": {"name": "Free", "price_cny": 0, "credits": 100, "max_projects": 3},
-    "pro": {"name": "Pro", "price_cny": 49, "credits": 5000, "max_projects": 20},
-    "enterprise": {"name": "Enterprise", "price_cny": 199, "credits": 50000, "max_projects": 999},
+    "free": {"name": "Free", "price_cny": 0, "credits": 100, "max_projects": 3, "model_tier": "free"},
+    "pro": {"name": "Pro", "price_cny": 49, "credits": 5000, "max_projects": 20, "model_tier": "paid"},
+    "enterprise": {"name": "Enterprise", "price_cny": 199, "credits": 50000, "max_projects": 999, "model_tier": "paid"},
 }
 
 SSH_BASE_DIR = "/home"

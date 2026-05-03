@@ -20,9 +20,12 @@ class UserOut(BaseModel):
     email: str
     plan: str
     credits: float
+    model_tier: str = "free"
+    has_api_key: bool = False
     ssh_username: Optional[str] = None
     ssh_port: Optional[int] = None
     is_admin: bool = False
+    is_active: bool = True
     created_at: datetime
 
 
@@ -74,6 +77,7 @@ class ChatRequest(BaseModel):
     project_id: str
     messages: List[ChatMessage]
     model: str = "deepseek-chat"
+    file_type: str = "code"  # code, ppt, doc, html, pdf, other
 
 
 class ChatResponse(BaseModel):
@@ -82,6 +86,23 @@ class ChatResponse(BaseModel):
     output_tokens: int
     credits_used: float
     credits_remaining: float
+    model_used: str = ""
+
+
+class ModelInfo(BaseModel):
+    id: str
+    name: str
+    desc: str
+    multiplier: float = 1.0
+
+
+class AdminUserUpdate(BaseModel):
+    api_key: Optional[str] = None
+    plan: Optional[str] = None
+    model_tier: Optional[str] = None
+    credits: Optional[float] = None
+    is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
 
 
 class BillingPlan(BaseModel):

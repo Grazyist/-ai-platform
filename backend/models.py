@@ -18,6 +18,8 @@ class User(Base):
     plan = Column(String(20), default="free")  # free, pro, enterprise
     credits = Column(Float, default=100.0)     # remaining credits
     total_credits_used = Column(Float, default=0.0)
+    api_key = Column(String(100), default="")  # user's own DeepSeek API key (set by admin)
+    model_tier = Column(String(20), default="free")  # free, paid
     ssh_username = Column(String(50), unique=True)
     ssh_password_hash = Column(String(200))
     ssh_port = Column(Integer)
@@ -95,3 +97,17 @@ class SystemSetting(Base):
     key = Column(String(100), primary_key=True)
     value = Column(Text, default="")
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class GeneratedFile(Base):
+    __tablename__ = "generated_files"
+    id = Column(String, primary_key=True, default=gen_id)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    file_type = Column(String(20))   # ppt, doc, pdf, code, html, other
+    file_name = Column(String(200))
+    file_path = Column(String(500))
+    size_bytes = Column(Integer, default=0)
+    model_used = Column(String(50))
+    credits_cost = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)

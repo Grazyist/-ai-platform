@@ -14,11 +14,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from database import init_db, get_db, async_session
-from models import User, Project, ProjectFile, ApiUsage, Payment, ShareLink, SystemSetting
+from models import User, Project, ProjectFile, ApiUsage, Payment, ShareLink, SystemSetting, GeneratedFile
 from schemas import *
 from auth import hash_password, verify_password, create_token, get_current_user, get_admin
 from ai_proxy import ai_proxy
-from config import PLANS, SSH_BASE_DIR, PROJECTS_DIR
+from config import PLANS, MODELS, FILE_TYPES, SSH_BASE_DIR, PROJECTS_DIR
 
 app = FastAPI(title="AI Platform", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -199,12 +199,25 @@ async def chat(data: ChatRequest, user: User = Depends(get_current_user), db: As
     await _get_user_project(data.project_id, user, db)
     msgs = [{"role": m.role, "content": m.content} for m in data.messages]
     try:
-        result = await ai_proxy.chat(db, user, data.project_id, msgs, data.model)
+        result = await ai_proxy.chat(db, user, data.project_id, msgs, data.model, data.file_type)
     except ValueError as e:
         raise HTTPException(402, str(e))
     except RuntimeError as e:
         raise HTTPException(502, str(e))
     return ChatResponse(**result)
+
+
+# ── Models & File Types ───────────────────────────────
+
+@app.get("/api/models", response_model=list[ModelInfo])
+async def list_models(user: User = Depends(get_current_user)):
+    tier = user.model_tier if user.model_tier in MODELS else "free"
+    return [ModelInfo(**m) for m in MODELS.get(tier, MODELS["free"])]
+
+
+@app.get("/api/file-types")
+async def list_file_types():
+    return FILE_TYPES
 
 
 # ── Billing ───────────────────────────────────────────
@@ -359,6 +372,64 @@ async def admin_user_usage(user_id: str, days: int = 30, admin: User = Depends(g
     }
 
 
+# ── Admin User Management ─────────────────────────────
+
+@app.put("/api/admin/users/{user_id}")
+async def admin_update_user(user_id: str, data: AdminUserUpdate, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    if data.api_key is not None:
+        user.api_key = data.api_key
+    if data.plan is not None and data.plan in PLANS:
+        user.plan = data.plan
+        user.model_tier = PLANS[data.plan].get("model_tier", "free")
+    if data.model_tier is not None:
+        user.model_tier = data.model_tier
+    if data.credits is not None:
+        user.credits = data.credits
+    if data.is_active is not None:
+        user.is_active = data.is_active
+    if data.is_admin is not None:
+        user.is_admin = data.is_admin
+    await db.commit()
+    return {"ok": True, "user": _user_out(user)}
+
+
+@app.get("/api/admin/users/{user_id}/usage")
+async def admin_user_usage_detail(user_id: str, days: int = 30, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    since = datetime.utcnow() - timedelta(days=days)
+    usage_result = await db.execute(
+        select(ApiUsage).where(ApiUsage.user_id == user_id, ApiUsage.created_at >= since)
+        .order_by(ApiUsage.created_at.desc()).limit(200)
+    )
+    usages = usage_result.scalars().all()
+    gen_result = await db.execute(
+        select(func.count(GeneratedFile.id), func.sum(GeneratedFile.credits_cost))
+        .where(GeneratedFile.user_id == user_id)
+    )
+    gen_stats = gen_result.one()
+    return {
+        "user": _user_out(user),
+        "total_api_calls": len(usages),
+        "total_input_tokens": sum(u.input_tokens for u in usages),
+        "total_output_tokens": sum(u.output_tokens for u in usages),
+        "total_credits_used": round(sum(u.cost_credits for u in usages), 4),
+        "generated_files": gen_stats[0] or 0,
+        "gen_credits": round(gen_stats[1] or 0, 4),
+        "records": [
+            {"model": u.model, "input": u.input_tokens, "output": u.output_tokens,
+             "cost": u.cost_credits, "endpoint": u.endpoint, "time": str(u.created_at)}
+            for u in usages[:100]
+        ]
+    }
+
+
 # ── Admin Settings ─────────────────────────────────────
 
 @app.get("/api/admin/settings")
@@ -412,8 +483,11 @@ async def admin_reload_settings(admin: User = Depends(get_admin), db: AsyncSessi
 
 def _user_out(u: User) -> UserOut:
     return UserOut(id=u.id, username=u.username, email=u.email, plan=u.plan,
-                   credits=u.credits, ssh_username=u.ssh_username, ssh_port=u.ssh_port,
-                   is_admin=u.is_admin, created_at=u.created_at)
+                   credits=u.credits, model_tier=u.model_tier or "free",
+                   has_api_key=bool(u.api_key and u.api_key.strip()),
+                   ssh_username=u.ssh_username, ssh_port=u.ssh_port,
+                   is_admin=u.is_admin, is_active=u.is_active,
+                   created_at=u.created_at)
 
 
 def _project_out(p: Project) -> ProjectOut:
