@@ -268,6 +268,23 @@
     <div id="rightInfo" style="display:none">
       <h6 class="text-secondary text-uppercase small fw-semibold" key="project_info">项目信息</h6>
       <div id="projectInfo" class="mb-3"></div>
+      <h6 class="text-secondary text-uppercase small fw-semibold" key="account_settings">账号设置</h6>
+      <div class="mb-3">
+        <label class="form-label small" key="apikey_label">个人 API Key</label>
+        <div class="input-group input-group-sm">
+          <input class="form-control" id="userApiKey" type="password" placeholder="sk-...">
+          <button class="btn btn-outline-secondary" onclick="saveUserApiKey()" key="save_apikey">保存</button>
+        </div>
+        <div class="form-text" style="font-size:0.7rem" key="apikey_hint">使用个人 DeepSeek Key 不计入系统费用</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small" key="change_pw">修改密码</label>
+        <input class="form-control form-control-sm mb-1" id="oldPassword" type="password" placeholder="当前密码">
+        <div class="input-group input-group-sm">
+          <input class="form-control" id="newPassword" type="password" placeholder="新密码(最少6位)">
+          <button class="btn btn-outline-secondary" onclick="changePassword()" key="save_pw">修改</button>
+        </div>
+      </div>
       <h6 class="text-secondary text-uppercase small fw-semibold" key="ssh_access">SSH 访问</h6>
       <div class="code-preview bg-body p-3" id="sshInfo">Loading...</div>
     </div>
@@ -342,6 +359,7 @@ const I18N = {
     th_user:'用户',th_email:'邮箱',th_plan:'套餐',th_tier:'模型等级',th_credits:'余额',th_storage:'空间',th_apikey:'API Key',th_actions:'操作',
     edit_storage:'空间(MB)',set_apikey:'设置Key',set_balance:'调余额',set_tier:'等级',
     settings_saved:'设置已保存',payment_ok:'支付确认！套餐已升级',api_saved:'用户 API Key 已更新',
+    account_settings:'账号设置',apikey_label:'个人 API Key',save_apikey:'保存',apikey_hint:'使用个人 DeepSeek Key 不计入系统费用',change_pw:'修改密码',save_pw:'修改',
     ai:'AI',you:'你',
     tier_free:'免费模型',tier_paid:'付费模型',
     code:'💻 代码',html:'🌐 网页',ppt:'📊 PPT',doc:'📄 文档',
@@ -376,6 +394,7 @@ const I18N = {
     th_user:'User',th_email:'Email',th_plan:'Plan',th_tier:'Model Tier',th_credits:'Credits',th_storage:'Storage',th_apikey:'API Key',th_actions:'Actions',
     edit_storage:'Storage(MB)',set_apikey:'Set Key',set_balance:'Adjust',set_tier:'Tier',
     settings_saved:'Settings saved',payment_ok:'Payment confirmed! Plan upgraded.',api_saved:'User API Key updated',
+    account_settings:'Account Settings',apikey_label:'Personal API Key',save_apikey:'Save',apikey_hint:'Use your own DeepSeek Key to avoid system charges',change_pw:'Change Password',save_pw:'Change',
     ai:'AI',you:'You',
     tier_free:'Free Models',tier_paid:'Paid Models',
     code:'💻 Code',html:'🌐 Web',ppt:'📊 PPT',doc:'📄 Document',
@@ -524,6 +543,18 @@ function showRightTab(tab){
 }
 function renderProjectInfo(p){if(!p)return;$('projectInfo').innerHTML=`<p class="fw-semibold">${esc(p.name)}</p><p class="small text-secondary">${p.file_count} files · ${new Date(p.updated_at).toLocaleString()}</p>`}
 async function loadSSH(){try{const i=await api('GET','/api/ssh/info');$('sshInfo').textContent=i.command+'\n\nProjects in ~/projects/'}catch(e){$('sshInfo').textContent='Login required'}}
+async function saveUserApiKey(){
+  const key=$('userApiKey').value.trim();
+  if(!key){showToast('API Key cannot be empty',true);return}
+  try{await api('PUT','/api/auth/apikey?api_key='+encodeURIComponent(key));showToast('API Key saved');state.user.has_api_key=true}catch(e){showToast(e.message,true)}
+}
+async function changePassword(){
+  const oldPw=$('oldPassword').value.trim();
+  const newPw=$('newPassword').value.trim();
+  if(!oldPw){showToast('Please enter current password',true);return}
+  if(newPw.length<6){showToast('Password must be at least 6 characters',true);return}
+  try{await api('PUT','/api/auth/password?old_pw='+encodeURIComponent(oldPw)+'&new_pw='+encodeURIComponent(newPw));showToast(t('settings_saved'));$('oldPassword').value='';$('newPassword').value=''}catch(e){showToast(e.message,true)}
+}
 
 // ── Admin ────────────────────────────────────────────
 let currentAdminTab='dashboard';
