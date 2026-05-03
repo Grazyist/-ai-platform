@@ -963,8 +963,25 @@ async function loadWelcome(){
   }catch(e){}
 }
 
-// Init session restore
+// Init — restore session if valid token exists
 (async function(){
+  const savedToken = localStorage.getItem('ai_platform_token');
+  if (savedToken) {
+    try {
+      const r = await fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + savedToken }
+      });
+      if (r.ok) {
+        const user = await r.json();
+        state.token = savedToken;
+        state.user = user;
+        enterApp();
+        return;
+      }
+    } catch(e) {}
+    // Token invalid — clear it
+    localStorage.removeItem('ai_platform_token');
+  }
   loadWelcome();
   applyLang();
 })();
