@@ -346,6 +346,7 @@ const I18N = {
     tier_free:'免费模型',tier_paid:'付费模型',
     code:'💻 代码',html:'🌐 网页',ppt:'📊 PPT',doc:'📄 文档',
     my_files:'我的文件',upload_file:'+ 上传文件',
+    no_projects:'暂无项目',no_files:'暂无文件',
   },
   en: {
     hero_sub:'Chat with AI to build projects · Download · SSH Dev',
@@ -379,6 +380,7 @@ const I18N = {
     tier_free:'Free Models',tier_paid:'Paid Models',
     code:'💻 Code',html:'🌐 Web',ppt:'📊 PPT',doc:'📄 Document',
     my_files:'My Files',upload_file:'+ Upload File',
+    no_projects:'No projects',no_files:'No files',
   }
 };
 let lang = localStorage.getItem('ai_platform_lang')||'zh';
@@ -451,7 +453,7 @@ function selectFileType(ft){
 async function refreshProjects(){state.projects=await api('GET','/api/projects');renderProjects()}
 function renderProjects(){
   const el=$('projectList');
-  if(!state.projects.length){el.innerHTML='<div class="p-2 small text-secondary">No projects</div>';return}
+  if(!state.projects.length){el.innerHTML='<div class="p-2 small text-secondary">'+t('no_projects')+'</div>';return}
   el.innerHTML=state.projects.map(p=>`
     <div class="sb-project${state.activeProject===p.id?' active':''}" onclick="selectProject('${p.id}')">
       <span>${esc(p.name)}<span class="text-secondary ms-1" style="font-size:0.75rem">${p.file_count}f</span></span>
@@ -834,7 +836,7 @@ async function loadUserFiles(){
     if(data.storage_pct>95)$('storageFill').classList.replace('bg-warning','bg-danger');
 
     const el=$('userFilesList');
-    if(!data.files.length){el.innerHTML='<p class="text-center py-3 text-secondary">暂无文件</p>';return}
+    if(!data.files.length){el.innerHTML='<p class="text-center py-3 text-secondary">'+t('no_files')+'</p>';return}
     el.innerHTML=data.files.map(f=>`
       <div class="file-item">
         <div class="finfo">
