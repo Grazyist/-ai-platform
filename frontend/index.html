@@ -534,7 +534,7 @@ async function shareProject(){
 function renderFiles(){
   const el=$('fileTree');
   if(!state.files.length){el.innerHTML='<div style="color:var(--dim);font-size:0.82rem;padding:4px">'+t('no_file')+'</div>';return}
-  el.innerHTML=state.files.map(f=>`<div class="sb-file" onclick="previewFile('${f.id}')"><span class="ext-tag">${f.path.split('.').pop()||'?'}</span>${esc(f.path)}</div>`).join('');
+  el.innerHTML=state.files.map(f=>`<div class="sb-file" onclick="previewFile('${f.id}')"><span class="ext-tag">${f.path.split('.').pop()||'?'}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.path)}</span><span class="sb-dl-btn" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Download">⬇</span></div>`).join('');
 }
 function previewFile(id){const f=state.files.find(f=>f.id===id);if(!f)return;state.activeFile=f;$('filePreview').textContent=f.content}
 
@@ -545,14 +545,31 @@ async function sendMessage(){
   addMsg('user',text);
   try{
     const r=await api('POST','/api/chat',{project_id:state.activeProject,messages:[{role:'user',content:text}],model:state.selectedModel,file_type:state.selectedFileType});
-    addMsg('assistant',r.reply);
     $('creditsDisplay').textContent=Math.round(r.credits_remaining)+' credits';state.user.credits=r.credits_remaining;
-    const fileBlocks=r.reply.match(/```file:([^\n]+)\n([\s\S]*?)```/g);
-    if(fileBlocks){for(const b of fileBlocks){const m=b.match(/```file:([^\n]+)\n([\s\S]*?)```/);if(m)await api('POST',`/api/projects/${state.activeProject}/files`,{path:m[1].trim(),content:m[2].trim()})}
-      state.files=await api('GET',`/api/projects/${state.activeProject}/files`);state.projects=await api('GET','/api/projects');renderFiles();renderProjects();}
+    // Refresh files -- backend already saved them via _parse_and_save_files
+    state.files=await api('GET',`/api/projects/${state.activeProject}/files`);
+    state.projects=await api('GET','/api/projects');
+    renderFiles();renderProjects();
+    addMsg('assistant',r.reply);
   }catch(e){addMsg('assistant','Error: '+e.message)}
 }
-function addMsg(role,content){const el=$('chatMessages');if(el.querySelector('.empty-state'))el.innerHTML='';el.innerHTML+=`<div class="msg ${role}"><div class="role">${t(role)}</div><div class="bubble">${esc(content)}</div></div>`;el.scrollTop=el.scrollHeight}
+function addMsg(role,content){
+  const el=$('chatMessages');if(el.querySelector('.empty-state'))el.innerHTML='';
+  const lines=content.split('\n');let parts=[];
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    const sm=line.match(/^\[saved\]\s+(.+)$/);
+    if(sm){parts.push(renderFileCard(sm[1].trim()));continue}
+    const bm=line.match(/^\[built\]\s+(.+)$/);
+    if(bm){bm[1].split(',').forEach(p=>parts.push(renderFileCard(p.trim())));continue}
+    const b2m=line.match(/^\[build\]\s+(.+)$/);
+    if(b2m){parts.push('<span style="color:var(--orange);font-size:0.85rem">⚙️ '+esc(b2m[1])+'</span>');continue}
+    parts.push(esc(line));
+    if(i<lines.length-1)parts.push('\n');
+  }
+  el.innerHTML+=`<div class="msg ${role}"><div class="role">${t(role)}</div><div class="bubble">${parts.join('')}</div></div>`;
+  el.scrollTop=el.scrollHeight;
+}
 function renderChat(){$('chatMessages').innerHTML='<div class="empty-state">'+t('chat_hint')+'</div>'}
 
 // ── Right Panel ──────────────────────────────────────
