@@ -1205,6 +1205,38 @@ def _stream_project_tar(user: User, project: Project):
     )
 
 
+def _get_media_type(path: str) -> str:
+    ext = Path(path).suffix.lower()
+    return {
+        ".py": "text/plain", ".js": "text/javascript", ".ts": "text/typescript",
+        ".html": "text/html", ".css": "text/css", ".json": "application/json",
+        ".md": "text/markdown", ".txt": "text/plain", ".csv": "text/csv",
+        ".xml": "application/xml", ".yaml": "application/x-yaml", ".yml": "application/x-yaml",
+        ".sh": "text/plain", ".sql": "text/plain",
+        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".pdf": "application/pdf",
+        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".gif": "image/gif", ".svg": "image/svg+xml",
+        ".zip": "application/zip", ".tar": "application/x-tar", ".gz": "application/gzip",
+    }.get(ext, "application/octet-stream")
+
+
+@app.get("/api/projects/{project_id}/files/{file_id}/download")
+async def download_project_file(project_id: str, file_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    project = await _get_user_project(project_id, user, db)
+    result = await db.execute(
+        select(ProjectFile).where(ProjectFile.id == file_id, ProjectFile.project_id == project_id)
+    )
+    pf = result.scalar_one_or_none()
+    if not pf:
+        raise HTTPException(404, "File not found")
+    disk_path = _project_path(user, project) / pf.path
+    if not disk_path.exists():
+        raise HTTPException(404, "File not found on disk")
+    return FileResponse(disk_path, media_type=_get_media_type(pf.path), filename=Path(pf.path).name)
+
+
 # ── Frontend ───────────────────────────────────────────
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
