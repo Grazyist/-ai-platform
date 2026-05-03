@@ -419,7 +419,8 @@ function doLogout(){localStorage.removeItem('ai_platform_token');document.body.c
 function showErr(id,msg){const e=$(id);e.textContent=msg;e.classList.remove('d-none');setTimeout(()=>e.classList.add('d-none'),4000)}
 
 async function enterApp(){
-  $('landingPage').style.display='none';$('appLayout').classList.add('show');
+  $('landingPage').remove();
+  $('appLayout').style.display='grid';
   document.body.classList.add('app-mode');
   $('userName').textContent=state.user.username;$('planBadge').textContent=state.user.plan;
   $('creditsDisplay').textContent=Math.round(state.user.credits)+' credits';
@@ -428,7 +429,7 @@ async function enterApp(){
   applyLang();
   await refreshProjects();
   if(state.projects.length>0)selectProject(state.projects[0].id);
-  if(state.user.is_admin && location.hash==='#admin')showAdminView();
+  if(state.user.is_admin)showAdminView();
 }
 
 function populateModels(models){
