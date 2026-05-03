@@ -429,7 +429,7 @@ async function enterApp(){
   applyLang();
   await refreshProjects();
   if(state.projects.length>0)selectProject(state.projects[0].id);
-  if(state.user.is_admin)showAdminView();
+  if(state.user.is_admin && location.hash==='#admin')showAdminView();
 }
 
 function populateModels(models){
