@@ -13,8 +13,8 @@ from fastapi.responses import FileResponse, StreamingResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
-from database import init_db, get_db
-from models import User, Project, ProjectFile, ApiUsage, Payment, ShareLink
+from database import init_db, get_db, async_session
+from models import User, Project, ProjectFile, ApiUsage, Payment, ShareLink, SystemSetting
 from schemas import *
 from auth import hash_password, verify_password, create_token, get_current_user, get_admin
 from ai_proxy import ai_proxy
@@ -27,6 +27,19 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 @app.on_event("startup")
 async def startup():
     await init_db()
+    # Load settings from DB into runtime config
+    async with async_session() as db:
+        result = await db.execute(select(SystemSetting))
+        for s in result.scalars().all():
+            if s.key == "deepseek_api_key" and s.value:
+                import config
+                config.DEEPSEEK_API_KEY = s.value
+                ai_proxy.api_key = s.value
+            elif s.key == "secret_key" and s.value:
+                import config
+                config.SECRET_KEY = s.value
+            elif s.key == "git_host" and s.value:
+                os.environ["GIT_HOST"] = s.value
 
 
 # ── Auth ──────────────────────────────────────────────
@@ -39,16 +52,29 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
     if existing.scalar_one_or_none():
         raise HTTPException(400, "Username or email already exists")
 
+    # First registered user becomes admin
+    user_count = (await db.execute(select(func.count(User.id)))).scalar()
+    is_first = user_count == 0
+
+    ssh_user = f"dev_{data.username}"
+    ssh_port = 2200 + int(datetime.utcnow().timestamp()) % 1000
+
     user = User(
         username=data.username,
         email=data.email,
         hashed_password=hash_password(data.password),
-        ssh_username=f"dev_{data.username}",
-        ssh_port=2200 + int(datetime.utcnow().timestamp()) % 1000
+        ssh_username=ssh_user,
+        ssh_port=ssh_port,
+        is_admin=is_first
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    # Create system user and projects directory
+    script = os.path.join(os.path.dirname(__file__), "..", "deploy", "user_manager.sh")
+    subprocess.run(["bash", script, "create", ssh_user, data.password], capture_output=True)
+
     token = create_token(user.id)
     return TokenResponse(access_token=token, user=_user_out(user))
 
@@ -331,6 +357,55 @@ async def admin_user_usage(user_id: str, days: int = 30, admin: User = Depends(g
         "total_credits": round(total_cost, 4),
         "records": [{"model": u.model, "input": u.input_tokens, "output": u.output_tokens, "cost": u.cost_credits, "time": str(u.created_at)} for u in usages[:100]]
     }
+
+
+# ── Admin Settings ─────────────────────────────────────
+
+@app.get("/api/admin/settings")
+async def admin_get_settings(admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(SystemSetting))
+    settings = {s.key: s.value for s in result.scalars().all()}
+    # Sensitive keys: mask the value
+    masked = {}
+    for k, v in settings.items():
+        if "key" in k or "secret" in k or "password" in k:
+            masked[k] = v[:6] + "****" + v[-4:] if len(v) > 10 else "****"
+        else:
+            masked[k] = v
+    return masked
+
+
+@app.put("/api/admin/settings")
+async def admin_set_settings(data: dict, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    for key, value in data.items():
+        result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
+        setting = result.scalar_one_or_none()
+        if setting:
+            setting.value = str(value)
+            setting.updated_at = datetime.utcnow()
+        else:
+            db.add(SystemSetting(key=key, value=str(value)))
+    await db.commit()
+
+    # Reload AI proxy with new key if updated
+    if "deepseek_api_key" in data:
+        import config
+        config.DEEPSEEK_API_KEY = data["deepseek_api_key"]
+        ai_proxy.api_key = data["deepseek_api_key"]
+
+    return {"ok": True}
+
+
+@app.get("/api/admin/settings/reload")
+async def admin_reload_settings(admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(SystemSetting))
+    settings = {s.key: s.value for s in result.scalars().all()}
+    import config
+    for k, v in settings.items():
+        if k == "deepseek_api_key": config.DEEPSEEK_API_KEY = v; ai_proxy.api_key = v
+        elif k == "secret_key": config.SECRET_KEY = v
+        elif k == "git_host": os.environ["GIT_HOST"] = v
+    return {"ok": True, "loaded": list(settings.keys())}
 
 
 # ── Helpers ───────────────────────────────────────────

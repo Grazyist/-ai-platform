@@ -88,3 +88,10 @@ class ShareLink(Base):
     expires_at = Column(DateTime)
     download_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+    key = Column(String(100), primary_key=True)
+    value = Column(Text, default="")
+    updated_at = Column(DateTime, default=datetime.utcnow)
