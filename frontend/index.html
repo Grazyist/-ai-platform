@@ -137,8 +137,84 @@
       <button class="btn btn-outline-secondary btn-sm" onclick="openBilling()" key="upgrade">升级</button>
       <button class="btn btn-outline-secondary btn-sm" onclick="showRightTab('info')" key="ssh_btn">SSH</button>
       <span class="small text-secondary" id="userName"></span>
-      <button class="btn btn-warning btn-sm fw-bold" id="adminBtn" style="display:none" onclick="openAdmin()" key="admin">⚡ 管理后台</button>
+      <button class="btn btn-warning btn-sm fw-bold" id="adminBtn" style="display:none" onclick="showAdminView()" key="admin">⚡ 管理后台</button>
       <button class="btn btn-outline-secondary btn-sm" onclick="doLogout()" key="logout">退出</button>
+    </div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="adminView" style="display:none;grid-column:1/-1;overflow-y:auto;padding:20px 24px">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="fw-bold text-warning mb-0">⚡ 管理后台</h5>
+      <button class="btn btn-outline-secondary btn-sm" onclick="hideAdminView()">← 返回对话</button>
+    </div>
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button class="nav-link admin-tab active" onclick="adminTab('dashboard')" id="atabDashboard">📊 概览</button></li>
+      <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('users')" id="atabUsers">👥 用户</button></li>
+      <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('files')" id="atabFiles">📄 文件</button></li>
+      <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('revenue')" id="atabRevenue">💰 收益</button></li>
+      <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('system')" id="atabSystem">⚙️ 系统</button></li>
+    </ul>
+    <div id="adminDashboard">
+      <div class="stats-row" id="adminStats"></div>
+      <div class="row g-3 mt-2">
+        <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📈 7日用量</h6><div id="usageChart" class="d-flex align-items-end gap-1" style="height:120px;padding:8px 0"></div></div></div>
+        <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">🏆 Top 用户</h6><div id="topUsers"></div></div></div>
+        <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">🖥️ 系统健康</h6><div id="healthInfo">Loading...</div></div></div>
+        <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">💳 快速统计</h6><div id="quickStats"></div></div></div>
+      </div>
+    </div>
+    <div id="adminUsers" style="display:none">
+      <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+        <th key="th_user">用户</th><th key="th_email">邮箱</th><th key="th_plan">套餐</th><th key="th_tier">模型</th><th key="th_credits">余额</th><th key="th_storage">空间</th><th key="th_apikey">Key</th><th key="th_actions">操作</th>
+      </tr></thead><tbody id="adminUserTable"></tbody></table></div>
+      <div id="userDetailPanel" class="card p-4 mt-3 d-none"></div>
+    </div>
+    <div id="adminFiles" style="display:none">
+      <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+        <th>用户</th><th>项目</th><th>类型</th><th>模型</th><th>Credits</th><th>时间</th>
+      </tr></thead><tbody id="adminFilesTable"></tbody></table></div>
+      <div class="mt-3">
+        <div class="d-flex gap-2 align-items-center mb-2"><span class="small text-secondary fw-semibold">📤 用户上传文件</span><button class="btn btn-outline-secondary btn-sm" onclick="loadAdminUploadedFiles()">刷新</button></div>
+        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+          <th>用户</th><th>文件名</th><th>大小</th><th>下载</th><th>时间</th><th>操作</th>
+        </tr></thead><tbody id="adminUploadedFilesTable"></tbody></table></div>
+      </div>
+      <div class="mt-3">
+        <div class="d-flex gap-2 align-items-center mb-2"><span class="small text-secondary fw-semibold">📤 公开分享文件</span><button class="btn btn-outline-secondary btn-sm" onclick="loadAdminPublicFiles()">刷新</button></div>
+        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+          <th>Token</th><th>文件名</th><th>大小</th><th>下载</th><th>密码</th><th>过期</th><th>操作</th>
+        </tr></thead><tbody id="adminPublicFilesTable"></tbody></table></div>
+      </div>
+    </div>
+    <div id="adminRevenue" style="display:none">
+      <div class="row g-3 mb-3" id="revenueStats"></div>
+      <div class="row g-3">
+        <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📅 月度收入趋势</h6><div id="revenueChart" class="d-flex align-items-end gap-1" style="height:140px;padding:8px 0"></div></div></div>
+        <div class="col-md-3"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📋 按套餐</h6><div id="revenueByPlan"></div></div></div>
+        <div class="col-md-3"><div class="card p-3"><h6 class="text-secondary small text-uppercase">💳 按方式</h6><div id="revenueByMethod"></div></div></div>
+      </div>
+      <div class="card p-3 mt-3"><h6 class="text-secondary small text-uppercase mb-2">🧾 最近交易</h6>
+        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+          <th>用户</th><th>交易号</th><th>金额</th><th>套餐</th><th>方式</th><th>状态</th><th>时间</th>
+        </tr></thead><tbody id="revenueTxTable"></tbody></table></div>
+      </div>
+    </div>
+    <div id="adminSystem" style="display:none">
+      <div class="settings-grid">
+        <div class="mb-3"><label class="form-label" key="dskey_label">系统 DeepSeek API Key</label><input class="form-control" id="setDskey" placeholder="sk-..."><div class="form-text" key="dskey_hint">全局默认 Key</div></div>
+        <div class="mb-3"><label class="form-label">🏠 主页欢迎语</label><input class="form-control" id="setWelcome" placeholder="用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发"><div class="form-text">显示在主页大标题下方</div></div>
+        <div class="mb-3"><label class="form-label" key="jwt_label">JWT Secret</label><input class="form-control" id="setSecret"></div>
+        <div class="mb-3"><label class="form-label" key="host_label">域名/IP</label><input class="form-control" id="setHost"></div>
+        <div class="mb-3"><label class="form-label" key="price_label">定价 (JSON)</label><textarea class="form-control" id="setPlans" rows="4" style="font-family:monospace"></textarea></div>
+        <hr>
+        <h6 class="text-secondary mb-2">💳 支付配置</h6>
+        <div class="mb-3"><label class="form-label">支付宝 APPID</label><input class="form-control" id="setAlipayAppid" placeholder="2021xxxxxxxxxxxx"></div>
+        <div class="mb-3"><label class="form-label">支付宝应用私钥</label><textarea class="form-control" id="setAlipayPrivateKey" rows="3" style="font-family:monospace" placeholder="-----BEGIN RSA PRIVATE KEY-----"></textarea></div>
+        <div class="mb-3"><label class="form-label">支付宝公钥</label><textarea class="form-control" id="setAlipayPublicKey" rows="3" style="font-family:monospace" placeholder="-----BEGIN PUBLIC KEY-----"></textarea></div>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()" key="save_settings">💾 保存设置</button>
+      <div class="card p-3 mt-3"><h6 class="text-secondary small text-uppercase">🖥️ 系统详情</h6><div id="systemDetail">Loading...</div></div>
     </div>
   </div>
 
@@ -227,89 +303,6 @@
         <div class="bg-body-secondary rounded-3 mx-auto d-flex align-items-center justify-content-center text-secondary" style="width:180px;height:180px" id="qrPlaceholder">QR Code</div>
         <p class="text-warning small my-3" key="confirm_hint">支付完成后点击确认</p>
         <button class="btn btn-success" onclick="confirmPayment()" key="confirm_pay">确认支付</button>
-      </div>
-    </div>
-  </div></div>
-</div>
-
-<!-- ====== Admin Modal ====== -->
-<div class="modal fade" id="adminModal" tabindex="-1" style="display:none">
-  <div class="modal-dialog modal-xl"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">⚡ <span key="admin_dashboard">管理后台</span></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body">
-      <ul class="nav nav-tabs mb-3" role="tablist">
-        <li class="nav-item"><button class="nav-link admin-tab active" onclick="adminTab('dashboard')" id="atabDashboard">📊 概览</button></li>
-        <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('users')" id="atabUsers">👥 用户</button></li>
-        <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('files')" id="atabFiles">📄 文件</button></li>
-        <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('revenue')" id="atabRevenue">💰 收益</button></li>
-        <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('system')" id="atabSystem">⚙️ 系统</button></li>
-      </ul>
-      <div id="adminDashboard">
-        <div class="stats-row" id="adminStats"></div>
-        <div class="row g-3 mt-2">
-          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📈 7日用量</h6><div id="usageChart" class="d-flex align-items-end gap-1" style="height:120px;padding:8px 0"></div></div></div>
-          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">🏆 Top 用户</h6><div id="topUsers"></div></div></div>
-          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">🖥️ 系统健康</h6><div id="healthInfo">Loading...</div></div></div>
-          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">💳 快速统计</h6><div id="quickStats"></div></div></div>
-        </div>
-      </div>
-      <div id="adminUsers" style="display:none">
-        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
-          <th key="th_user">用户</th><th key="th_email">邮箱</th><th key="th_plan">套餐</th><th key="th_tier">模型</th><th key="th_credits">余额</th><th key="th_storage">空间</th><th key="th_apikey">Key</th><th key="th_actions">操作</th>
-        </tr></thead><tbody id="adminUserTable"></tbody></table></div>
-        <div id="userDetailPanel" class="card p-4 mt-3 d-none"></div>
-      </div>
-      <div id="adminFiles" style="display:none">
-        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
-          <th>用户</th><th>项目</th><th>类型</th><th>模型</th><th>Credits</th><th>时间</th>
-        </tr></thead><tbody id="adminFilesTable"></tbody></table></div>
-        <div class="mt-3">
-          <div class="d-flex gap-2 align-items-center mb-2">
-            <span class="small text-secondary fw-semibold">📤 用户上传文件</span>
-            <button class="btn btn-outline-secondary btn-sm" onclick="loadAdminUploadedFiles()">刷新</button>
-          </div>
-          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
-            <th>用户</th><th>文件名</th><th>大小</th><th>下载</th><th>时间</th><th>操作</th>
-          </tr></thead><tbody id="adminUploadedFilesTable"></tbody></table></div>
-        </div>
-        <div class="mt-3">
-          <div class="d-flex gap-2 align-items-center mb-2">
-            <span class="small text-secondary fw-semibold">📤 公开分享文件</span>
-            <button class="btn btn-outline-secondary btn-sm" onclick="loadAdminPublicFiles()">刷新</button>
-          </div>
-          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
-            <th>Token</th><th>文件名</th><th>大小</th><th>下载</th><th>密码</th><th>过期</th><th>操作</th>
-          </tr></thead><tbody id="adminPublicFilesTable"></tbody></table></div>
-        </div>
-      </div>
-      <div id="adminRevenue" style="display:none">
-        <div class="row g-3 mb-3" id="revenueStats"></div>
-        <div class="row g-3">
-          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📅 月度收入趋势</h6><div id="revenueChart" class="d-flex align-items-end gap-1" style="height:140px;padding:8px 0"></div></div></div>
-          <div class="col-md-3"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📋 按套餐</h6><div id="revenueByPlan"></div></div></div>
-          <div class="col-md-3"><div class="card p-3"><h6 class="text-secondary small text-uppercase">💳 按方式</h6><div id="revenueByMethod"></div></div></div>
-        </div>
-        <div class="card p-3 mt-3"><h6 class="text-secondary small text-uppercase mb-2">🧾 最近交易</h6>
-          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
-            <th>用户</th><th>交易号</th><th>金额</th><th>套餐</th><th>方式</th><th>状态</th><th>时间</th>
-          </tr></thead><tbody id="revenueTxTable"></tbody></table></div>
-        </div>
-      </div>
-      <div id="adminSystem" style="display:none">
-        <div class="settings-grid">
-          <div class="mb-3"><label class="form-label" key="dskey_label">系统 DeepSeek API Key</label><input class="form-control" id="setDskey" placeholder="sk-..."><div class="form-text" key="dskey_hint">全局默认 Key</div></div>
-          <div class="mb-3"><label class="form-label">🏠 主页欢迎语</label><input class="form-control" id="setWelcome" placeholder="用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发"><div class="form-text">显示在主页大标题下方</div></div>
-          <div class="mb-3"><label class="form-label" key="jwt_label">JWT Secret</label><input class="form-control" id="setSecret"></div>
-          <div class="mb-3"><label class="form-label" key="host_label">域名/IP</label><input class="form-control" id="setHost"></div>
-          <div class="mb-3"><label class="form-label" key="price_label">定价 (JSON)</label><textarea class="form-control" id="setPlans" rows="4" style="font-family:monospace"></textarea></div>
-          <hr>
-          <h6 class="text-secondary mb-2">💳 支付配置</h6>
-          <div class="mb-3"><label class="form-label">支付宝 APPID</label><input class="form-control" id="setAlipayAppid" placeholder="2021xxxxxxxxxxxx"></div>
-          <div class="mb-3"><label class="form-label">支付宝应用私钥</label><textarea class="form-control" id="setAlipayPrivateKey" rows="3" style="font-family:monospace" placeholder="-----BEGIN RSA PRIVATE KEY-----"></textarea></div>
-          <div class="mb-3"><label class="form-label">支付宝公钥</label><textarea class="form-control" id="setAlipayPublicKey" rows="3" style="font-family:monospace" placeholder="-----BEGIN PUBLIC KEY-----"></textarea></div>
-        </div>
-        <button class="btn btn-primary" onclick="saveSettings()" key="save_settings">💾 保存设置</button>
-        <div class="card p-3 mt-3"><h6 class="text-secondary small text-uppercase">🖥️ 系统详情</h6><div id="systemDetail">Loading...</div></div>
       </div>
     </div>
   </div></div>
@@ -435,7 +428,7 @@ async function enterApp(){
   applyLang();
   await refreshProjects();
   if(state.projects.length>0)selectProject(state.projects[0].id);
-  if(state.user.is_admin && location.hash==='#admin')openAdmin();
+  if(state.user.is_admin && location.hash==='#admin')showAdminView();
 }
 
 function populateModels(models){
@@ -539,20 +532,27 @@ function adminTab(tab){
   if(tab==='system')loadSystemTab();
 }
 
-function openAdmin(){
-  const modal=new bootstrap.Modal($('adminModal'));
-  modal.show();
+function showAdminView(){
+  document.querySelector('.sidebar').style.display='none';
+  document.querySelector('.chat-area').style.display='none';
+  document.querySelector('.right-panel').style.display='none';
+  $('adminView').style.display='block';
   api('GET','/api/admin/settings').then(settings=>{
     $('setDskey').value=settings.deepseek_api_key||'';
     $('setSecret').value=settings.secret_key||'';
     $('setHost').value=settings.git_host||'gristai.top';
     $('setPlans').value=settings.pricing_plans||JSON.stringify({"free":{"name":"Free","price_cny":0,"credits":100,"max_projects":3,"model_tier":"free"},"pro":{"name":"Pro","price_cny":49,"credits":5000,"max_projects":20,"model_tier":"paid"},"enterprise":{"name":"Enterprise","price_cny":199,"credits":50000,"max_projects":999,"model_tier":"paid"}},null,2);
-  });
+  }).catch(()=>{});
   adminTab('dashboard');
   applyLang();
 }
 
-function closeAdmin(){bootstrap.Modal.getInstance($('adminModal')).hide();$('userDetailPanel').classList.add('d-none')}
+function hideAdminView(){
+  document.querySelector('.sidebar').style.display='';
+  document.querySelector('.chat-area').style.display='';
+  document.querySelector('.right-panel').style.display='';
+  $('adminView').style.display='none';
+}
 
 async function loadDashboard(){
   const d=await api('GET','/api/admin/dashboard');
