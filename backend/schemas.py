@@ -26,6 +26,7 @@ class UserOut(BaseModel):
     ssh_port: Optional[int] = None
     is_admin: bool = False
     is_active: bool = True
+    storage_limit: int = 20971520
     created_at: datetime
 
 
@@ -101,6 +102,7 @@ class AdminUserUpdate(BaseModel):
     plan: Optional[str] = None
     model_tier: Optional[str] = None
     credits: Optional[float] = None
+    storage_limit: Optional[int] = None
     is_active: Optional[bool] = None
     is_admin: Optional[bool] = None
 

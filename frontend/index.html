@@ -120,7 +120,7 @@
   .plan-card .price{font-size:1.6rem;color:var(--orange);margin:8px 0;font-weight:700}
   .plan-card .detail{font-size:0.85rem;color:var(--dim)}
 
-  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
   .stat-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
   .stat-box .val{font-size:1.6rem;font-weight:700;color:var(--accent)}
   .stat-box .lbl{font-size:0.8rem;color:var(--dim);margin-top:4px}
@@ -135,6 +135,13 @@
   .user-table th{text-align:left;padding:8px 10px;color:var(--dim);font-size:0.8rem;font-weight:600;border-bottom:1px solid var(--border)}
   .user-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
   .user-table tr:hover{background:var(--bg)}
+
+  .admin-tab{height:40px;padding:0 20px;background:transparent;border:none;color:var(--dim);font-size:0.9rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;font-weight:500}
+  .admin-tab:hover{color:var(--text)}
+  .admin-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .admin-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .admin-card h4{font-size:0.82rem;color:var(--dim);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .usage-bar{height:100%;background:var(--accent);border-radius:2px 2px 0 0;min-width:20px;transition:height .3s}
 
   .toast{position:fixed;top:20px;right:20px;background:var(--green);color:#fff;padding:14px 22px;border-radius:10px;z-index:300;font-size:0.95rem;display:none;box-shadow:var(--elevation)}
   .toast.error{background:var(--red)}
@@ -296,24 +303,64 @@
 
 <!-- ====== Admin Modal ====== -->
 <div class="modal-overlay" id="adminModal">
-  <div class="modal" style="min-width:800px">
+  <div class="modal" style="min-width:900px;max-height:95vh">
     <h2>⚡ <span key="admin_dashboard">管理后台</span></h2>
-    <div class="stats-row" id="adminStats"></div>
-
-    <h3 style="font-size:1rem;color:var(--text);margin:20px 0 12px" key="system_settings">系统设置</h3>
-    <div class="settings-grid">
-      <div class="setting-item"><label key="dskey_label">系统 DeepSeek API Key</label><input id="setDskey" placeholder="sk-..."><p style="font-size:0.75rem;color:var(--dim);margin-top:4px" key="dskey_hint">全局默认 Key，用户未配置则用此 Key</p></div>
-      <div class="setting-item"><label key="jwt_label">JWT Secret</label><input id="setSecret"></div>
-      <div class="setting-item"><label key="host_label">域名/IP</label><input id="setHost"></div>
-      <div class="setting-item"><label key="price_label">定价方案 (JSON)</label><textarea id="setPlans" rows="4" style="font-size:0.8rem;font-family:monospace;resize:vertical"></textarea></div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border)">
+      <button class="admin-tab active" onclick="adminTab('dashboard')" id="atabDashboard">📊 概览</button>
+      <button class="admin-tab" onclick="adminTab('users')" id="atabUsers">👥 用户</button>
+      <button class="admin-tab" onclick="adminTab('files')" id="atabFiles">📄 文件</button>
+      <button class="admin-tab" onclick="adminTab('system')" id="atabSystem">⚙️ 系统</button>
     </div>
-    <button class="btn btn-accent" onclick="saveSettings()" key="save_settings">💾 保存设置</button>
-    <button class="btn btn-outline btn-sm" onclick="reloadSettings()" key="reload_settings" style="margin-left:8px">重新加载</button>
 
-    <h3 style="font-size:1rem;color:var(--text);margin:24px 0 12px" key="user_list">用户管理</h3>
-    <div style="overflow-x:auto"><table class="user-table"><thead><tr>
-      <th key="th_user">用户</th><th key="th_email">邮箱</th><th key="th_plan">套餐</th><th key="th_tier">模型等级</th><th key="th_credits">余额</th><th key="th_apikey">API Key</th><th key="th_actions">操作</th>
-    </tr></thead><tbody id="adminUserTable"></tbody></table></div>
+    <!-- Dashboard Tab -->
+    <div id="adminDashboard">
+      <div class="stats-row" id="adminStats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+        <div class="admin-card"><h4>📈 7日用量</h4><div id="usageChart" style="display:flex;align-items:flex-end;gap:4px;height:120px;padding:8px 0"></div></div>
+        <div class="admin-card"><h4>🏆 Top 用户</h4><div id="topUsers"></div></div>
+        <div class="admin-card"><h4>🖥️ 系统健康</h4><div id="healthInfo">Loading...</div></div>
+        <div class="admin-card"><h4>💳 快速统计</h4><div id="quickStats"></div></div>
+      </div>
+    </div>
+
+    <!-- Users Tab -->
+    <div id="adminUsers" style="display:none">
+      <div style="overflow-x:auto"><table class="user-table"><thead><tr>
+        <th key="th_user">用户</th><th key="th_email">邮箱</th><th key="th_plan">套餐</th><th key="th_tier">模型</th><th key="th_credits">余额</th><th key="th_storage">空间</th><th key="th_apikey">Key</th><th key="th_actions">操作</th>
+      </tr></thead><tbody id="adminUserTable"></tbody></table></div>
+      <!-- User Detail Panel -->
+      <div id="userDetailPanel" style="display:none;margin-top:16px;padding:20px;background:var(--bg);border:1px solid var(--border);border-radius:10px"></div>
+    </div>
+
+    <!-- Files Tab -->
+    <div id="adminFiles" style="display:none">
+      <div style="overflow-x:auto"><table class="user-table"><thead><tr>
+        <th>用户</th><th>项目</th><th>类型</th><th>模型</th><th>Credits</th><th>时间</th>
+      </tr></thead><tbody id="adminFilesTable"></tbody></table></div>
+      <div style="margin-top:12px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <span style="font-size:0.82rem;color:var(--dim);font-weight:600">📤 用户上传文件</span>
+          <button class="btn btn-sm btn-outline" onclick="loadAdminUploadedFiles()">刷新</button>
+        </div>
+        <table class="user-table"><thead><tr>
+          <th>用户</th><th>文件名</th><th>大小</th><th>下载</th><th>时间</th><th>操作</th>
+        </tr></thead><tbody id="adminUploadedFilesTable"></tbody></table>
+      </div>
+    </div>
+
+    <!-- System Tab -->
+    <div id="adminSystem" style="display:none">
+      <div class="settings-grid">
+        <div class="setting-item"><label key="dskey_label">系统 DeepSeek API Key</label><input id="setDskey" placeholder="sk-..."><p style="font-size:0.75rem;color:var(--dim);margin-top:4px" key="dskey_hint">全局默认 Key</p></div>
+        <div class="setting-item"><label key="jwt_label">JWT Secret</label><input id="setSecret"></div>
+        <div class="setting-item"><label key="host_label">域名/IP</label><input id="setHost"></div>
+        <div class="setting-item"><label key="price_label">定价 (JSON)</label><textarea id="setPlans" rows="4" style="font-size:0.78rem;font-family:monospace;resize:vertical"></textarea></div>
+      </div>
+      <button class="btn btn-accent" onclick="saveSettings()" key="save_settings" style="margin-bottom:8px">💾 保存设置</button>
+      <div class="admin-card" style="margin-top:12px"><h4>🖥️ 系统详情</h4><div id="systemDetail">Loading...</div></div>
+    </div>
+
     <button class="btn btn-outline" style="width:100%;margin-top:16px" onclick="closeAdmin()" key="close">关闭</button>
   </div>
 </div>
@@ -346,8 +393,8 @@ const I18N = {
     dskey_label:'系统 DeepSeek API Key',dskey_hint:'全局默认 Key，用户未配置则用此 Key',
     jwt_label:'JWT Secret',host_label:'域名/IP',price_label:'定价方案 (JSON)',
     save_settings:'💾 保存设置',reload_settings:'重新加载',user_list:'用户管理',close:'关闭',
-    th_user:'用户',th_email:'邮箱',th_plan:'套餐',th_tier:'模型等级',th_credits:'余额',th_apikey:'API Key',th_actions:'操作',
-    set_apikey:'设置Key',set_balance:'调余额',set_tier:'等级',
+    th_user:'用户',th_email:'邮箱',th_plan:'套餐',th_tier:'模型等级',th_credits:'余额',th_storage:'空间',th_apikey:'API Key',th_actions:'操作',
+    edit_storage:'空间(MB)',set_apikey:'设置Key',set_balance:'调余额',set_tier:'等级',
     settings_saved:'设置已保存',payment_ok:'支付确认！套餐已升级',api_saved:'用户 API Key 已更新',
     ai:'AI',you:'你',
     tier_free:'免费模型',tier_paid:'付费模型',
@@ -377,8 +424,8 @@ const I18N = {
     dskey_label:'System DeepSeek API Key',dskey_hint:'Default key, used when user has no personal key',
     jwt_label:'JWT Secret',host_label:'Host/IP',price_label:'Pricing Plans (JSON)',
     save_settings:'💾 Save Settings',reload_settings:'Reload from DB',user_list:'User Management',close:'Close',
-    th_user:'User',th_email:'Email',th_plan:'Plan',th_tier:'Model Tier',th_credits:'Credits',th_apikey:'API Key',th_actions:'Actions',
-    set_apikey:'Set Key',set_balance:'Adjust',set_tier:'Tier',
+    th_user:'User',th_email:'Email',th_plan:'Plan',th_tier:'Model Tier',th_credits:'Credits',th_storage:'Storage',th_apikey:'API Key',th_actions:'Actions',
+    edit_storage:'Storage(MB)',set_apikey:'Set Key',set_balance:'Adjust',set_tier:'Tier',
     settings_saved:'Settings saved',payment_ok:'Payment confirmed! Plan upgraded.',api_saved:'User API Key updated',
     ai:'AI',you:'You',
     tier_free:'Free Models',tier_paid:'Paid Models',
@@ -504,53 +551,206 @@ function renderProjectInfo(p){if(!p)return;$('projectInfo').innerHTML=`<p style=
 async function loadSSH(){try{const i=await api('GET','/api/ssh/info');$('sshInfo').textContent=i.command+'\n\nProjects in ~/projects/'}catch(e){$('sshInfo').textContent='Login required'}}
 
 // ── Admin ────────────────────────────────────────────
+let currentAdminTab='dashboard';
+
+function adminTab(tab){
+  currentAdminTab=tab;
+  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.toggle('active',t.id==='atab'+tab.charAt(0).toUpperCase()+tab.slice(1)));
+  ['Dashboard','Users','Files','System'].forEach(t=>{const el=$('admin'+t);if(el)el.style.display=t.toLowerCase()===tab?'block':'none'});
+  if(tab==='dashboard')loadDashboard();
+  if(tab==='users')loadAdminUsers();
+  if(tab==='files'){loadAdminFiles();loadAdminUploadedFiles();}
+  if(tab==='system')loadSystemTab();
+}
+
 async function openAdmin(){
-  const stats=await api('GET','/api/admin/stats');
-  const users=await api('GET','/api/admin/users');
+  $('adminModal').classList.add('show');
   const settings=await api('GET','/api/admin/settings');
-  $('adminStats').innerHTML=`
-    <div class="stat-box"><div class="val">${stats.users}</div><div class="lbl">Users</div></div>
-    <div class="stat-box"><div class="val">${stats.projects}</div><div class="lbl">Projects</div></div>
-    <div class="stat-box"><div class="val">¥${stats.revenue_cny}</div><div class="lbl">Revenue</div></div>
-    <div class="stat-box"><div class="val">${stats.today_credits_used}</div><div class="lbl">Credits Today</div></div>`;
   $('setDskey').value=settings.deepseek_api_key||'';
   $('setSecret').value=settings.secret_key||'';
   $('setHost').value=settings.git_host||'gristai.top';
   $('setPlans').value=settings.pricing_plans||JSON.stringify({"free":{"name":"Free","price_cny":0,"credits":100,"max_projects":3,"model_tier":"free"},"pro":{"name":"Pro","price_cny":49,"credits":5000,"max_projects":20,"model_tier":"paid"},"enterprise":{"name":"Enterprise","price_cny":199,"credits":50000,"max_projects":999,"model_tier":"paid"}},null,2);
+  adminTab('dashboard');
+  toggleLang();
+}
+
+function closeAdmin(){$('adminModal').classList.remove('show');$('userDetailPanel').style.display='none'}
+
+async function loadDashboard(){
+  const d=await api('GET','/api/admin/dashboard');
+  $('adminStats').innerHTML=`
+    <div class="stat-box"><div class="val">${d.users}</div><div class="lbl">Users</div></div>
+    <div class="stat-box"><div class="val">${d.active_today}</div><div class="lbl">今日活跃</div></div>
+    <div class="stat-box"><div class="val">${d.projects}</div><div class="lbl">Projects</div></div>
+    <div class="stat-box"><div class="val">${d.generated_files}</div><div class="lbl">生成文件</div></div>
+    <div class="stat-box"><div class="val">¥${d.revenue_cny}</div><div class="lbl">收入</div></div>
+    <div class="stat-box"><div class="val">${d.today_calls}</div><div class="lbl">今日调用</div></div>
+    <div class="stat-box"><div class="val" style="color:var(--orange)">${d.today_credits.toFixed(1)}</div><div class="lbl">今日用量</div></div>
+    <div class="stat-box"><div class="val" style="color:var(--orange)">${d.total_credits.toFixed(1)}</div><div class="lbl">总用量</div></div>`;
+
+  // Usage chart
+  const maxVal=Math.max(...d.daily_usage.map(u=>u.credits),1);
+  $('usageChart').innerHTML=d.daily_usage.map(u=>{
+    const h=Math.max(4,u.credits/maxVal*100);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end">
+      <div class="usage-bar" style="height:${h}%;width:100%" title="${u.date}: ${u.credits.toFixed(1)}"></div>
+      <span style="font-size:0.65rem;color:var(--dim);margin-top:4px">${u.date.slice(5)}</span></div>`;
+  }).join('');
+
+  // Top users
+  $('topUsers').innerHTML=d.top_users.map((u,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem">
+      <span>${i+1}. ${esc(u.username)}</span>
+      <span style="color:var(--orange)">${u.total_used.toFixed(1)} used</span></div>`).join('')||'No data';
+
+  // Quick stats
+  $('quickStats').innerHTML=`
+    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem"><span>待处理支付</span><span style="color:var(--orange)">${d.pending_payments}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem"><span>项目总数</span><span>${d.projects}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem"><span>文件总数</span><span>${d.files}</span></div>`;
+
+  // Health
+  try{const h=await api('GET','/api/admin/health');
+    $('healthInfo').innerHTML=`
+      <div style="margin:6px 0;font-size:0.85rem"><span>CPU:</span><div style="background:var(--border);height:6px;border-radius:3px;margin:4px 0"><div style="width:${h.cpu_pct}%;height:100%;background:var(--accent);border-radius:3px"></div></div><span style="font-size:0.75rem;color:var(--dim)">${h.cpu_pct}%</span></div>
+      <div style="margin:6px 0;font-size:0.85rem"><span>内存:</span><div style="background:var(--border);height:6px;border-radius:3px;margin:4px 0"><div style="width:${h.mem_used_pct}%;height:100%;background:${h.mem_used_pct>80?'var(--red)':'var(--green)'};border-radius:3px"></div></div><span style="font-size:0.75rem;color:var(--dim)">${h.mem_used_pct}% / ${h.mem_total_gb}GB</span></div>
+      <div style="margin:6px 0;font-size:0.85rem"><span>磁盘:</span><div style="background:var(--border);height:6px;border-radius:3px;margin:4px 0"><div style="width:${h.disk_used_pct}%;height:100%;background:${h.disk_used_pct>80?'var(--red)':'var(--green)'};border-radius:3px"></div></div><span style="font-size:0.75rem;color:var(--dim)">${h.disk_used_pct}% / ${h.disk_free_gb}GB free</span></div>
+      <div style="font-size:0.8rem;color:var(--dim);margin-top:4px">运行时间: ${h.uptime_hours}h</div>`;
+  }catch(e){$('healthInfo').textContent='N/A'}
+}
+
+async function loadAdminUsers(){
+  const users=await api('GET','/api/admin/users');
   $('adminUserTable').innerHTML=users.map(u=>`<tr>
-    <td><strong>${esc(u.username)}</strong>${u.is_admin?' ⚡':''}</td>
+    <td><strong>${esc(u.username)}</strong>${u.is_admin?' ⚡ ':''}</td>
     <td style="font-size:0.82rem">${esc(u.email)}</td>
     <td>${u.plan}</td>
-    <td><span style="color:${u.model_tier==='paid'?'var(--green)':'var(--dim)'}">${u.model_tier||'free'}</span></td>
+    <td style="color:${u.model_tier==='paid'?'var(--green)':'var(--dim)'}">${u.model_tier||'free'}</td>
     <td style="color:var(--orange)">${Math.round(u.credits)}</td>
-    <td style="font-size:0.78rem">${u.api_key?u.api_key.substring(0,10)+'...':'未设置'}</td>
-    <td style="display:flex;gap:4px;flex-wrap:wrap">
+    <td style="font-size:0.82rem">${(u.storage_limit/1024/1024).toFixed(0)}MB</td>
+    <td style="font-size:0.75rem">${u.has_api_key?'已设置':'未设置'}</td>
+    <td style="display:flex;gap:3px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-outline" onclick="showUserDetail('${u.id}')" title="详情">📋</button>
       <button class="btn btn-sm btn-outline" onclick="setUserApiKey('${u.id}','${esc(u.username)}')" title="设置API Key">🔑</button>
+      <button class="btn btn-sm btn-outline" onclick="setStorageLimit('${u.id}','${esc(u.username)}',${u.storage_limit})" title="调整空间">💾</button>
       <button class="btn btn-sm btn-outline" onclick="adjustBalance('${u.id}','${esc(u.username)}',${u.credits})" title="调整余额">💰</button>
       <button class="btn btn-sm btn-outline" onclick="toggleUserTier('${u.id}','${u.model_tier||'free'}')" title="切换模型等级">🔄</button>
+      <button class="btn btn-sm btn-outline" onclick="resetUserPw('${u.id}','${esc(u.username)}')" title="重置密码">🔒</button>
+      <button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delUser('${u.id}','${esc(u.username)}')" title="删除">✕</button>
     </td></tr>`).join('');
-  $('adminModal').classList.add('show');toggleLang();
 }
-function closeAdmin(){$('adminModal').classList.remove('show')}
+
+async function showUserDetail(uid){
+  const d=await api('GET',`/api/admin/users/${uid}/detail`);
+  const panel=$('userDetailPanel');
+  panel.style.display='block';
+  panel.innerHTML=`
+    <h4 style="margin-bottom:12px">👤 ${esc(d.user.username)} 详情</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:0.85rem;margin-bottom:16px">
+      <div><span style="color:var(--dim)">Plan:</span> ${d.user.plan}</div>
+      <div><span style="color:var(--dim)">Tier:</span> ${d.user.model_tier}</div>
+      <div><span style="color:var(--dim)">Credits:</span> <span style="color:var(--orange)">${Math.round(d.user.credits)}</span></div>
+      <div><span style="color:var(--dim)">Projects:</span> ${d.projects.length}</div>
+      <div><span style="color:var(--dim)">Files:</span> ${d.file_count}</div>
+      <div><span style="color:var(--dim)">Generated:</span> ${d.generated_files.length}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <h5 style="font-size:0.8rem;color:var(--dim);margin-bottom:8px">📊 Recent Usage</h5>
+        <div style="max-height:200px;overflow-y:auto">${d.usage.slice(0,10).map(u=>`
+          <div style="font-size:0.78rem;padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
+            <span>${u.model}</span>
+            <span style="color:var(--orange)">${u.cost.toFixed(4)} credits</span>
+          </div>`).join('')||'No usage'}</div>
+      </div>
+      <div>
+        <h5 style="font-size:0.8rem;color:var(--dim);margin-bottom:8px">💳 Payments</h5>
+        <div style="max-height:200px;overflow-y:auto">${d.payments.map(p=>`
+          <div style="font-size:0.78rem;padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
+            <span>${p.plan} ¥${p.amount}</span>
+            <span style="color:${p.status==='paid'?'var(--green)':'var(--dim)'}">${p.status}</span>
+          </div>`).join('')||'No payments'}</div>
+      </div>
+    </div>`;
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+async function loadAdminFiles(){
+  const files=await api('GET','/api/admin/generated-files?limit=100');
+  $('adminFilesTable').innerHTML=files.map(f=>`<tr>
+    <td>${esc(f.username)}</td><td>${esc(f.project)}</td>
+    <td>${f.file_type}</td><td style="font-size:0.82rem">${f.model}</td>
+    <td style="color:var(--orange)">${f.credits.toFixed(4)}</td>
+    <td style="font-size:0.78rem">${new Date(f.created_at+'Z').toLocaleString()}</td>
+  </tr>`).join('')||'<tr><td colspan="6">No files</td></tr>';
+}
+
+async function loadSystemTab(){
+  try{const h=await api('GET','/api/admin/health');
+    $('systemDetail').innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">
+        <div>CPU: ${h.cpu_pct}%</div><div>内存: ${h.mem_used_pct}% (${h.mem_total_gb}GB)</div>
+        <div>磁盘: ${h.disk_used_pct}%</div><div>可用: ${h.disk_free_gb}GB</div>
+        <div>运行: ${h.uptime_hours}h</div>
+      </div>`;
+  }catch(e){$('systemDetail').textContent='N/A'}
+}
 
 async function setUserApiKey(uid,uname){
   const key=prompt(`设置 ${uname} 的 DeepSeek API Key:`);
   if(key===null)return;
   await api('PUT',`/api/admin/users/${uid}`,{api_key:key});
-  showToast(t('api_saved'));openAdmin();
+  showToast(t('api_saved'));loadAdminUsers();
 }
 async function adjustBalance(uid,uname,current){
   const amt=prompt(`${uname} 当前余额: ${Math.round(current)} credits\n输入新余额:`);
   if(amt===null)return;
   await api('PUT',`/api/admin/users/${uid}`,{credits:parseFloat(amt)});
-  showToast('Balance updated');openAdmin();
+  showToast('Balance updated');loadAdminUsers();
 }
 async function toggleUserTier(uid,current){
   const nxt=current==='paid'?'free':'paid';
   await api('PUT',`/api/admin/users/${uid}`,{model_tier:nxt});
-  showToast(`Model tier: ${nxt}`);openAdmin();
+  showToast(`Model tier: ${nxt}`);loadAdminUsers();
+}
+async function resetUserPw(uid,uname){
+  if(!confirm(`Reset password for ${uname}?`))return;
+  const r=await api('POST',`/api/admin/users/${uid}/reset-password`);
+  showToast(`New password: ${r.new_password}`);alert(`New password for ${uname}: ${r.new_password}`);
+}
+async function delUser(uid,uname){
+  if(!confirm(`DELETE ${uname}? This cannot be undone!`))return;
+  await api('DELETE',`/api/admin/users/${uid}`);
+  showToast('User deleted');loadAdminUsers();
 }
 
+async function setStorageLimit(uid,uname,current){
+  const mb=prompt(uname+' 当前空间: '+(current/1024/1024).toFixed(0)+'MB
+输入新空间大小(MB):');
+  if(mb===null)return;
+  await api('PUT','/api/admin/users/'+uid,{storage_limit:parseInt(mb)*1024*1024});
+  showToast('Storage limit updated');loadAdminUsers();
+}
+async function loadAdminUploadedFiles(){
+  try{
+    const files=await api('GET','/api/admin/user-files');
+    const el=document.getElementById('adminUploadedFilesTable');
+    if(!el)return;
+    el.innerHTML=files.map(f=>'<tr>
+      <td>'+esc(f.username)+'</td>
+      <td style="font-size:0.85rem">'+esc(f.original_name)+'</td>
+      <td>'+(f.size_bytes/1024).toFixed(1)+'KB</td>
+      <td>'+f.download_count+'</td>
+      <td style="font-size:0.78rem">'+new Date(f.created_at+'Z').toLocaleString()+'</td>
+      <td><button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delAdminUploadedFile(''+f.id+'',''+esc(f.original_name)+'')">删除</button></td>
+    </tr>').join('')||'<tr><td colspan="6">No files</td></tr>';
+  }catch(e){}
+}
+async function delAdminUploadedFile(fid,fname){
+  if(!confirm('Delete uploaded file: '+fname+'?'))return;
+  await api('DELETE','/api/admin/user-files/'+fid);
+  showToast('Deleted');loadAdminUploadedFiles();
+}
 async function saveSettings(){
   const s={};
   const dskey=$('setDskey').value.trim();if(dskey)s.deepseek_api_key=dskey;

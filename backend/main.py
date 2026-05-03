@@ -99,6 +99,46 @@ async def me(user: User = Depends(get_current_user)):
     return _user_out(user)
 
 
+@app.put("/api/auth/password")
+async def change_password(old_pw: str = Query(...), new_pw: str = Query(...), user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if not verify_password(old_pw, user.hashed_password):
+        raise HTTPException(400, "Current password is incorrect")
+    user.hashed_password = hash_password(new_pw)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.put("/api/auth/apikey")
+async def set_own_apikey(api_key: str = Query(...), user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    user.api_key = api_key.strip()
+    await db.commit()
+    return {"ok": True, "has_api_key": bool(user.api_key)}
+
+
+@app.get("/api/auth/usage")
+async def my_usage(days: int = 30, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    since = datetime.utcnow() - timedelta(days=days)
+    result = await db.execute(
+        select(ApiUsage).where(ApiUsage.user_id == user.id, ApiUsage.created_at >= since)
+        .order_by(ApiUsage.created_at.desc()).limit(100)
+    )
+    usages = result.scalars().all()
+    total_input = sum(u.input_tokens for u in usages)
+    total_output = sum(u.output_tokens for u in usages)
+    total_cost = sum(u.cost_credits for u in usages)
+    return {
+        "total_calls": len(usages),
+        "total_input_tokens": total_input,
+        "total_output_tokens": total_output,
+        "total_credits": round(total_cost, 4),
+        "records": [
+            {"model": u.model, "input": u.input_tokens, "output": u.output_tokens,
+             "cost": u.cost_credits, "time": str(u.created_at)}
+            for u in usages[:50]
+        ]
+    }
+
+
 # ── Projects ──────────────────────────────────────────
 
 @app.get("/api/projects", response_model=list[ProjectOut])
@@ -351,6 +391,7 @@ async def list_user_files(user: User = Depends(get_current_user), db: AsyncSessi
     )
     files = result.scalars().all()
     total_bytes = sum(f.size_bytes for f in files)
+    user_limit = user.storage_limit or MAX_STORAGE_BYTES
     return {
         "files": [
             {
@@ -361,23 +402,23 @@ async def list_user_files(user: User = Depends(get_current_user), db: AsyncSessi
             for f in files
         ],
         "storage_used": total_bytes,
-        "storage_limit": MAX_STORAGE_BYTES,
-        "storage_pct": round(total_bytes / MAX_STORAGE_BYTES * 100, 1)
+        "storage_limit": user_limit,
+        "storage_pct": round(total_bytes / user_limit * 100, 1) if user_limit > 0 else 0
     }
 
 
 @app.post("/api/files/upload")
 async def upload_file(file: UploadFile, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    # Check storage quota
+    # Check storage quota (per-user limit)
     result = await db.execute(
         select(func.sum(UserFile.size_bytes)).where(UserFile.user_id == user.id)
     )
     used = result.scalar() or 0
-    # Read file content (FastAPI's UploadFile)
+    user_limit = user.storage_limit or MAX_STORAGE_BYTES
     content = await file.read()
     file_size = len(content)
-    if used + file_size > MAX_STORAGE_BYTES:
-        raise HTTPException(400, f"Storage limit reached: {used//1024}KB used of {MAX_STORAGE_BYTES//1024//1024}MB")
+    if used + file_size > user_limit:
+        raise HTTPException(400, f"Storage limit reached: {used//1024}KB used of {user_limit//1024//1024}MB")
 
     upload_dir = Path(UPLOAD_DIR.format(username=user.ssh_username))
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -602,12 +643,232 @@ async def admin_update_user(user_id: str, data: AdminUserUpdate, admin: User = D
         user.model_tier = data.model_tier
     if data.credits is not None:
         user.credits = data.credits
+    if data.storage_limit is not None:
+        user.storage_limit = data.storage_limit
     if data.is_active is not None:
         user.is_active = data.is_active
     if data.is_admin is not None:
         user.is_admin = data.is_admin
     await db.commit()
     return {"ok": True, "user": _user_out(user)}
+
+
+@app.delete("/api/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    if user_id == admin.id:
+        raise HTTPException(400, "Cannot delete yourself")
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    # Clean up user data
+    await db.execute(select(Project).where(Project.user_id == user_id))
+    for p in (await db.execute(select(Project).where(Project.user_id == user_id))).scalars().all():
+        shutil.rmtree(_project_path(user, p), ignore_errors=True)
+    shutil.rmtree(Path(UPLOAD_DIR.format(username=user.ssh_username)), ignore_errors=True)
+    await db.delete(user)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/admin/users/{user_id}/reset-password")
+async def admin_reset_password(user_id: str, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    new_pw = uuid.uuid4().hex[:10]
+    user.hashed_password = hash_password(new_pw)
+    await db.commit()
+    return {"ok": True, "new_password": new_pw}
+
+
+# ── Admin: Enhanced Stats & Health ─────────────────────
+
+@app.get("/api/admin/dashboard")
+async def admin_dashboard(admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    today = datetime.utcnow().date()
+    # Basic counts
+    users_count = (await db.execute(select(func.count(User.id)))).scalar()
+    active_today = (await db.execute(
+        select(func.count(ApiUsage.id)).where(ApiUsage.created_at >= today)
+    )).scalar()
+    projects_count = (await db.execute(select(func.count(Project.id)))).scalar()
+    files_count = (await db.execute(select(func.count(ProjectFile.id)))).scalar()
+    gen_files = (await db.execute(select(func.count(GeneratedFile.id)))).scalar()
+
+    # Revenue
+    revenue = (await db.execute(
+        select(func.sum(Payment.amount_cny)).where(Payment.status == "paid")
+    )).scalar() or 0
+    pending_payments = (await db.execute(
+        select(func.count(Payment.id)).where(Payment.status == "pending")
+    )).scalar()
+
+    # Credits usage
+    today_credits = (await db.execute(
+        select(func.sum(ApiUsage.cost_credits)).where(ApiUsage.created_at >= today)
+    )).scalar() or 0
+    total_credits = (await db.execute(
+        select(func.sum(ApiUsage.cost_credits))
+    )).scalar() or 0
+
+    # API calls
+    today_calls = (await db.execute(
+        select(func.count(ApiUsage.id)).where(ApiUsage.created_at >= today)
+    )).scalar()
+
+    # Last 7 days usage
+    week_ago = today - timedelta(days=7)
+    daily_usage = []
+    for i in range(7):
+        d = today - timedelta(days=6-i)
+        dt_start = datetime(d.year, d.month, d.day)
+        dt_end = datetime(d.year, d.month, d.day, 23, 59, 59)
+        cred = (await db.execute(
+            select(func.sum(ApiUsage.cost_credits)).where(
+                ApiUsage.created_at >= dt_start, ApiUsage.created_at <= dt_end
+            )
+        )).scalar() or 0
+        daily_usage.append({"date": str(d), "credits": round(cred, 2)})
+
+    # Top users
+    top_result = await db.execute(
+        select(User.username, User.credits, User.total_credits_used)
+        .order_by(User.total_credits_used.desc()).limit(5)
+    )
+    top_users = [{"username": r[0], "credits": r[1], "total_used": r[2]} for r in top_result.all()]
+
+    return {
+        "users": users_count, "active_today": active_today,
+        "projects": projects_count, "files": files_count, "generated_files": gen_files,
+        "revenue_cny": round(revenue, 2), "pending_payments": pending_payments,
+        "today_credits": round(today_credits, 2), "total_credits": round(total_credits, 2),
+        "today_calls": today_calls,
+        "daily_usage": daily_usage, "top_users": top_users
+    }
+
+
+@app.get("/api/admin/health")
+async def admin_health(admin: User = Depends(get_admin)):
+    import psutil
+    return {
+        "cpu_pct": psutil.cpu_percent(interval=0.5),
+        "mem_used_pct": psutil.virtual_memory().percent,
+        "mem_total_gb": round(psutil.virtual_memory().total / 1024**3, 1),
+        "disk_used_pct": psutil.disk_usage("/").percent,
+        "disk_free_gb": round(psutil.disk_usage("/").free / 1024**3, 1),
+        "uptime_hours": round((datetime.utcnow() - datetime.fromtimestamp(psutil.boot_time())).total_seconds() / 3600, 1)
+    }
+
+
+@app.get("/api/admin/generated-files")
+async def admin_generated_files(skip: int = 0, limit: int = 50, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(GeneratedFile).order_by(GeneratedFile.created_at.desc()).offset(skip).limit(limit)
+    )
+    files = result.scalars().all()
+    out = []
+    for f in files:
+        user_r = await db.execute(select(User.username).where(User.id == f.user_id))
+        uname = user_r.scalar_one_or_none() or "?"
+        proj_r = await db.execute(select(Project.name).where(Project.id == f.project_id))
+        pname = proj_r.scalar_one_or_none() or "?"
+        out.append({
+            "id": f.id, "username": uname, "project": pname,
+            "file_type": f.file_type, "model": f.model_used,
+            "credits": f.credits_cost, "created_at": str(f.created_at)
+        })
+    return out
+
+
+@app.get("/api/admin/user-files")
+async def admin_user_files(admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(UserFile, User.username).join(User, UserFile.user_id == User.id)
+        .order_by(UserFile.created_at.desc()).limit(100)
+    )
+    rows = result.all()
+    return [
+        {
+            "id": f.id, "username": username, "original_name": f.original_name,
+            "size_bytes": f.size_bytes, "download_count": f.download_count,
+            "created_at": str(f.created_at)
+        }
+        for f, username in rows
+    ]
+
+
+@app.delete("/api/admin/user-files/{file_id}")
+async def admin_delete_user_file(file_id: str, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(UserFile).where(UserFile.id == file_id))
+    uf = result.scalar_one_or_none()
+    if not uf:
+        raise HTTPException(404, "File not found")
+    user_result = await db.execute(select(User).where(User.id == uf.user_id))
+    file_user = user_result.scalar_one()
+    upload_dir = Path(UPLOAD_DIR.format(username=file_user.ssh_username))
+    (upload_dir / uf.filename).unlink(missing_ok=True)
+    # Delete associated share links
+    links = await db.execute(select(FileShareLink).where(FileShareLink.file_id == file_id))
+    for link in links.scalars().all():
+        await db.delete(link)
+    await db.delete(uf)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/admin/users/{user_id}/detail")
+async def admin_user_detail(user_id: str, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    proj_result = await db.execute(select(Project).where(Project.user_id == user_id))
+    projects = proj_result.scalars().all()
+
+    file_count = 0
+    for p in projects:
+        file_count += await _count_files(p.id, db)
+
+    usage_result = await db.execute(
+        select(ApiUsage).where(ApiUsage.user_id == user_id)
+        .order_by(ApiUsage.created_at.desc()).limit(50)
+    )
+    usages = usage_result.scalars().all()
+
+    payments_result = await db.execute(
+        select(Payment).where(Payment.user_id == user_id).order_by(Payment.created_at.desc())
+    )
+    payments = payments_result.scalars().all()
+
+    gen_result = await db.execute(
+        select(GeneratedFile).where(GeneratedFile.user_id == user_id)
+        .order_by(GeneratedFile.created_at.desc()).limit(50)
+    )
+    gen_files = gen_result.scalars().all()
+
+    return {
+        "user": _user_out(user),
+        "projects": [_project_out(p) for p in projects],
+        "file_count": file_count,
+        "usage": [
+            {"model": u.model, "input": u.input_tokens, "output": u.output_tokens,
+             "cost": u.cost_credits, "endpoint": u.endpoint, "time": str(u.created_at)}
+            for u in usages
+        ],
+        "payments": [
+            {"id": p.id, "amount": p.amount_cny, "method": p.payment_method,
+             "status": p.status, "plan": p.plan_purchased, "time": str(p.created_at)}
+            for p in payments
+        ],
+        "generated_files": [
+            {"id": f.id, "type": f.file_type, "model": f.model_used,
+             "credits": f.credits_cost, "time": str(f.created_at)}
+            for f in gen_files
+        ]
+    }
 
 
 @app.get("/api/admin/users/{user_id}/usage")
@@ -700,6 +961,7 @@ def _user_out(u: User) -> UserOut:
                    has_api_key=bool(u.api_key and u.api_key.strip()),
                    ssh_username=u.ssh_username, ssh_port=u.ssh_port,
                    is_admin=u.is_admin, is_active=u.is_active,
+                   storage_limit=u.storage_limit or 20971520,
                    created_at=u.created_at)
 
 

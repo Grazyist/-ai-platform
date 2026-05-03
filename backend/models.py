@@ -24,6 +24,7 @@ class User(Base):
     ssh_password_hash = Column(String(200))
     ssh_port = Column(Integer)
     container_name = Column(String(100))
+    storage_limit = Column(Integer, default=20971520)  # 20MB default
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
