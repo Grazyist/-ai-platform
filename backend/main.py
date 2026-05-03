@@ -297,12 +297,18 @@ async def create_payment(data: PaymentRequest, user: User = Depends(get_current_
         credits_added=plan["credits"]
     )
     db.add(payment)
-
-    # In production: call WeChat/Alipay API to generate QR code
-    qr_url = f"https://api.example.com/qr/{trade_no}?amount={plan['price_cny']}&method={data.method}"
-
     await db.commit()
     await db.refresh(payment)
+
+    # Generate QR code as base64 data URL
+    import qrcode, io, base64
+    qr = qrcode.QRCode(box_size=8, border=2)
+    qr.add_data(f"gristai.top/pay/{trade_no}")
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    qr_url = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
     return PaymentOut(
         id=payment.id, amount_cny=payment.amount_cny,

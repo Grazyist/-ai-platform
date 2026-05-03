@@ -149,6 +149,17 @@ class AIProxy:
                 "Create beautiful, responsive single-page applications. "
                 "Use format: ```file:index.html\n<!DOCTYPE html>...```"
             ),
+            "pdf": (
+                "You generate PDF documents. Create structured reports with professional formatting. "
+                "Format output as Python using fpdf2 library. Use format:\n"
+                "```file:document.py\n"
+                "from fpdf import FPDF\n"
+                "pdf = FPDF()\n"
+                "pdf.add_page()\n"
+                "# Add content with pdf.cell(), pdf.multi_cell()...\n"
+                "```\n"
+                "Include headers, sections, tables, and proper UTF-8 font support."
+            ),
         }
         base = prompts.get(file_type, prompts["code"])
         if project_files and project_files != "(empty project — create your first file)":

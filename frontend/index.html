@@ -240,6 +240,7 @@
         <span class="ft-tab" data-ft="html" onclick="selectFileType('html')">🌐 HTML</span>
         <span class="ft-tab" data-ft="ppt" onclick="selectFileType('ppt')">📊 PPT</span>
         <span class="ft-tab" data-ft="doc" onclick="selectFileType('doc')">📄 DOC</span>
+        <span class="ft-tab" data-ft="pdf" onclick="selectFileType('pdf')">📕 PDF</span>
       </div>
     </div>
     <div class="chat-msgs" id="chatMessages"><div class="text-center text-secondary py-5" key="chat_hint">选择项目，选模型和文件类型，开始对话构建</div></div>
@@ -809,7 +810,7 @@ async function initiatePayment(){
   const method=document.querySelector('input[name="payMethod"]:checked').value;
   const payment=await api('POST','/api/billing/pay',{plan_key:selectedPlan,method});
   state.currentPayment=payment;$('paymentQR').classList.remove('d-none');
-  $('qrPlaceholder').innerHTML=`${method.toUpperCase()} Pay<br>¥${payment.amount_cny}<br>${payment.trade_no}`;
+  $('qrPlaceholder').innerHTML=`<div class="text-center"><img src="${payment.qr_url}" style="width:200px;height:200px" alt="QR"><p class="mt-2 mb-0 fw-bold text-warning">¥${payment.amount_cny}</p><p class="small text-secondary mb-0">${payment.trade_no}</p><p class="small text-secondary">${method==='alipay'?'请用支付宝扫码':'请用微信扫码'}</p></div>`;
 }
 async function confirmPayment(){
   if(!state.currentPayment)return;
