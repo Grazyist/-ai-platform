@@ -1039,6 +1039,108 @@ async def admin_reload_settings(admin: User = Depends(get_admin), db: AsyncSessi
     return {"ok": True, "loaded": list(settings.keys())}
 
 
+# ── Revenue Analysis ───────────────────────────────────
+
+@app.get("/api/admin/revenue")
+async def admin_revenue(admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    # Total revenue
+    total_revenue = (await db.execute(
+        select(func.sum(Payment.amount_cny)).where(Payment.status == "paid")
+    )).scalar() or 0
+
+    # This month revenue
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    month_revenue = (await db.execute(
+        select(func.sum(Payment.amount_cny)).where(
+            Payment.status == "paid", Payment.created_at >= month_start
+        )
+    )).scalar() or 0
+
+    # Today revenue
+    today_start = datetime(now.year, now.month, now.day)
+    today_revenue = (await db.execute(
+        select(func.sum(Payment.amount_cny)).where(
+            Payment.status == "paid", Payment.created_at >= today_start
+        )
+    )).scalar() or 0
+
+    # Revenue by plan
+    plan_rev_result = await db.execute(
+        select(Payment.plan_purchased, func.sum(Payment.amount_cny), func.count(Payment.id))
+        .where(Payment.status == "paid").group_by(Payment.plan_purchased)
+    )
+    by_plan = [{"plan": r[0], "revenue": round(r[1], 2), "count": r[2]} for r in plan_rev_result.all()]
+
+    # Revenue by payment method
+    method_rev_result = await db.execute(
+        select(Payment.payment_method, func.sum(Payment.amount_cny), func.count(Payment.id))
+        .where(Payment.status == "paid").group_by(Payment.payment_method)
+    )
+    by_method = [{"method": r[0], "revenue": round(r[1], 2), "count": r[2]} for r in method_rev_result.all()]
+
+    # Last 12 months revenue
+    monthly = []
+    for i in range(11, -1, -1):
+        total_months = now.year * 12 + (now.month - 1) - i
+        y, m = total_months // 12, total_months % 12 + 1
+        ms = datetime(y, m, 1)
+        if m == 12:
+            me = datetime(y + 1, 1, 1)
+        else:
+            me = datetime(y, m + 1, 1)
+        rev = (await db.execute(
+            select(func.sum(Payment.amount_cny)).where(
+                Payment.status == "paid", Payment.created_at >= ms, Payment.created_at < me
+            )
+        )).scalar() or 0
+        monthly.append({"month": f"{y}-{m:02d}", "revenue": round(rev, 2)})
+
+    # Recent transactions
+    tx_result = await db.execute(
+        select(Payment).order_by(Payment.created_at.desc()).limit(50)
+    )
+    transactions = []
+    for p in tx_result.scalars().all():
+        user_result = await db.execute(select(User.username).where(User.id == p.user_id))
+        uname = user_result.scalar_one_or_none()
+        transactions.append({
+            "id": p.id, "trade_no": p.trade_no, "username": uname or "?",
+            "amount_cny": p.amount_cny, "payment_method": p.payment_method,
+            "plan_purchased": p.plan_purchased, "status": p.status,
+            "created_at": str(p.created_at)[:19]
+        })
+
+    # Pending payments count
+    pending = (await db.execute(
+        select(func.count(Payment.id)).where(Payment.status == "pending")
+    )).scalar()
+
+    return {
+        "total_revenue": round(total_revenue, 2),
+        "month_revenue": round(month_revenue, 2),
+        "today_revenue": round(today_revenue, 2),
+        "by_plan": by_plan,
+        "by_method": by_method,
+        "monthly": monthly,
+        "transactions": transactions,
+        "pending_count": pending
+    }
+
+
+@app.get("/api/settings/public")
+async def public_settings(db: AsyncSession = Depends(get_db)):
+    """Public settings — no auth required."""
+    result = await db.execute(
+        select(SystemSetting).where(SystemSetting.key.in_(["welcome_message", "site_name"]))
+    )
+    settings = {s.key: s.value for s in result.scalars().all()}
+    return {
+        "welcome_message": settings.get("welcome_message", "用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发"),
+        "site_name": settings.get("site_name", "AI Platform")
+    }
+
+
 # ── Helpers ───────────────────────────────────────────
 
 def _user_out(u: User) -> UserOut:

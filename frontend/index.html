@@ -1,230 +1,150 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-bs-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Platform — Build with AI</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
   :root {
-    --bg:#0d1117; --surface:#161b22; --surface2:#1c2333; --border:#30363d; --text:#e6edf3;
-    --dim:#8b949e; --accent:#58a6ff; --green:#2ea043; --red:#f85149; --orange:#d2991d;
-    --radius:10px; --shadow:0 1px 3px rgba(0,0,0,.3); --elevation:0 4px 12px rgba(0,0,0,.4);
-    --font:'Google Sans', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+    --bs-body-font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font:16px/1.6 var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-y:auto}
-  body.app-mode{overflow:hidden;height:100vh}
-  a{color:var(--accent);text-decoration:none}
-  input,textarea,select,button{font-family:inherit}
-
-  /* Landing */
-  .landing{display:flex;flex-direction:column;align-items:center;padding:60px 20px 80px;min-height:100vh}
-  .landing .hero{text-align:center;max-width:720px;margin-bottom:48px}
-  .landing .hero h1{font-size:3rem;font-weight:700;color:var(--accent);margin-bottom:8px;letter-spacing:-0.5px}
-  .landing .hero p{font-size:1.25rem;color:var(--dim);line-height:1.6}
-  .landing .cta{display:flex;gap:16px;margin-bottom:56px}
-  .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:960px;margin-bottom:48px}
-  .feature-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;text-align:center;box-shadow:var(--shadow)}
-  .feature-card .icon{font-size:2.5rem;margin-bottom:12px}
-  .feature-card h3{font-size:1.15rem;font-weight:600;margin-bottom:8px;color:var(--text)}
-  .feature-card p{font-size:0.95rem;color:var(--dim);line-height:1.5}
-  .auth-wrapper{display:flex;justify-content:center;width:100%}
-  .auth-tabs{display:flex;gap:0;margin-bottom:-1px;position:relative;z-index:1}
-  .auth-tab{flex:1;height:48px;background:var(--surface2);border:1px solid var(--border);border-bottom:none;color:var(--dim);font-size:1rem;font-weight:500;cursor:pointer;transition:.15s;border-radius:10px 10px 0 0}
-  .auth-tab.active{background:var(--surface);color:var(--accent);font-weight:600;border-color:var(--border)}
-  .auth-tab:first-child{border-right:none;border-radius:10px 0 0 0}
-  .auth-tab:last-child{border-radius:0 10px 0 0}
-  .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:0 0 12px 12px;padding:40px 32px;width:420px;max-width:95vw;box-shadow:var(--elevation)}
-  .auth-card h2{font-size:1.6rem;font-weight:600;color:var(--accent);margin-bottom:4px}
-  .auth-card .sub{color:var(--dim);margin-bottom:24px;font-size:0.95rem}
-
-  .form-group{margin-bottom:20px}
-  .form-group label{display:block;font-size:0.875rem;font-weight:500;color:var(--dim);margin-bottom:6px}
-  .form-group input{width:100%;height:44px;padding:0 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1rem;outline:none;transition:border-color .15s}
-  .form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(88,166,255,.15)}
-
-  .btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 24px;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;gap:8px;white-space:nowrap}
-  .btn-primary{background:var(--green);color:#fff;width:100%}
-  .btn-primary:hover{filter:brightness(1.12)}
-  .btn-accent{background:var(--accent);color:#fff}
-  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
-  .btn-outline:hover{background:var(--surface2);border-color:var(--dim)}
-  .btn-sm{height:36px;padding:0 14px;font-size:0.85rem}
-  .btn-admin{background:var(--orange);color:#000;font-weight:700;box-shadow:0 0 0 0 rgba(210,153,29,.5);animation:pulse 2.5s infinite}
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(210,153,29,.4)}50%{box-shadow:0 0 0 10px rgba(210,153,29,0)}}
-
-  .error-msg{color:var(--red);font-size:0.85rem;margin-top:4px;display:none}
-  .link-row{text-align:center;margin-top:20px;font-size:0.9rem;color:var(--dim)}
-  .lang-bar{text-align:right;margin-bottom:16px}
-
-  /* App Layout */
-  .app{display:none;width:100%;height:100vh;grid-template-columns:280px 1fr 360px;grid-template-rows:56px 1fr}
-  .topbar{grid-column:1/-1;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:var(--shadow)}
-  .topbar .logo{font-size:1.15rem;font-weight:700;color:var(--accent);letter-spacing:-0.3px}
-  .topbar .tools{display:flex;align-items:center;gap:10px}
-  .plan-badge{font-size:0.8rem;padding:3px 10px;border-radius:20px;background:var(--accent);color:#fff;font-weight:500}
-  .credits{font-size:0.85rem;color:var(--orange);font-weight:500}
-
-  .sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px}
-  .sidebar .sec-title{font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--dim);margin:12px 0 8px;letter-spacing:0.5px}
-  .sb-project{padding:8px 12px;border-radius:8px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
-  .sb-project:hover{background:var(--bg)}
-  .sb-project.active{background:var(--bg);border:1px solid var(--border)}
-  .sb-project .del{color:var(--dim);font-size:0.7rem;padding:2px 6px;display:none;border-radius:4px}
-  .sb-project:hover .del{display:block}
-  .sb-project .del:hover{color:var(--red)}
-  .sb-file{padding:4px 12px 4px 24px;border-radius:6px;cursor:pointer;font-size:0.85rem;color:var(--dim);display:flex;align-items:center;gap:6px}
-  .sb-file:hover{color:var(--text);background:var(--bg)}
-  .sb-file .ext-tag{font-size:0.65rem;padding:1px 5px;border-radius:4px;background:var(--border);color:var(--dim)}
-
-  .chat-area{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
-  .chat-toolbar{display:flex;align-items:center;gap:12px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
-  .chat-toolbar select{height:38px;padding:0 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.9rem;cursor:pointer;outline:none}
-  .filetype-tabs{display:flex;gap:4px}
-  .ft-tab{padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;border:1px solid var(--border);background:transparent;color:var(--dim);transition:.15s}
-  .ft-tab:hover{color:var(--text);border-color:var(--dim)}
-  .ft-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-
-  .chat-msgs{flex:1;overflow-y:auto;padding:24px 28px}
-  .msg{margin-bottom:20px;max-width:80%}
-  .msg.user{margin-left:auto}
-  .msg.assistant{margin-right:auto}
-  .msg .role{font-size:0.8rem;font-weight:500;color:var(--dim);margin-bottom:4px}
-  .msg .bubble{padding:12px 18px;border-radius:16px;line-height:1.6;font-size:0.95rem;white-space:pre-wrap;word-break:break-word}
-  .msg.user .bubble{background:var(--accent);color:#fff;border-bottom-right-radius:6px}
-  .msg.assistant .bubble{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:6px}
-  .msg .bubble code{background:#00000030;padding:2px 6px;border-radius:4px;font-size:0.85rem}
-  .msg .bubble pre{background:var(--bg);padding:14px 18px;border-radius:8px;overflow-x:auto;margin:8px 0;font-size:0.85rem}
-
-  .chat-input-wrap{border-top:1px solid var(--border);background:var(--surface);padding:14px 20px;display:flex;gap:12px}
-  .chat-input-wrap textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px 16px;font-size:0.95rem;resize:none;outline:none;min-height:48px;max-height:120px}
-  .chat-input-wrap textarea:focus{border-color:var(--accent)}
-
-  .right-panel{background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:20px;display:none}
-  .right-panel.show{display:block}
-  .right-panel h3{font-size:0.8rem;font-weight:600;color:var(--dim);text-transform:uppercase;margin-bottom:12px;letter-spacing:.5px}
-  .code-preview{background:var(--bg);border-radius:8px;padding:14px;font-size:0.85rem;font-family:'SF Mono','Fira Code',monospace;white-space:pre-wrap;overflow-x:auto;max-height:55vh;line-height:1.5}
-  .right-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
-
-  .empty-state{text-align:center;color:var(--dim);padding:48px 20px;font-size:0.95rem}
-
-  /* Modal */
-  .modal-overlay{display:none;position:fixed;inset:0;background:#00000080;z-index:200;align-items:center;justify-content:center}
-  .modal-overlay.show{display:flex}
-  .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;min-width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--elevation)}
-  .modal h2{font-size:1.4rem;font-weight:600;color:var(--accent);margin-bottom:20px}
-  .plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
-  .plan-card{background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:.15s}
-  .plan-card:hover{border-color:var(--accent)}
-  .plan-card.selected{border-color:var(--green)}
-  .plan-card .name{font-size:1.05rem;font-weight:700}
-  .plan-card .price{font-size:1.6rem;color:var(--orange);margin:8px 0;font-weight:700}
-  .plan-card .detail{font-size:0.85rem;color:var(--dim)}
-
-  .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
-  .stat-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
-  .stat-box .val{font-size:1.6rem;font-weight:700;color:var(--accent)}
-  .stat-box .lbl{font-size:0.8rem;color:var(--dim);margin-top:4px}
-
-  .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-  .setting-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px}
-  .setting-item label{font-size:0.85rem;font-weight:500;color:var(--dim);display:block;margin-bottom:6px}
-  .setting-item input,.setting-item textarea,.setting-item select{width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.9rem;outline:none}
-  .setting-item input:focus{border-color:var(--accent)}
-
-  .user-table{width:100%;border-collapse:collapse;font-size:0.88rem}
-  .user-table th{text-align:left;padding:8px 10px;color:var(--dim);font-size:0.8rem;font-weight:600;border-bottom:1px solid var(--border)}
-  .user-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
-  .user-table tr:hover{background:var(--bg)}
-
-  .admin-tab{height:40px;padding:0 20px;background:transparent;border:none;color:var(--dim);font-size:0.9rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;font-weight:500}
-  .admin-tab:hover{color:var(--text)}
-  .admin-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-  .admin-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
-  .admin-card h4{font-size:0.82rem;color:var(--dim);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-  .usage-bar{height:100%;background:var(--accent);border-radius:2px 2px 0 0;min-width:20px;transition:height .3s}
-
-  .toast{position:fixed;top:20px;right:20px;background:var(--green);color:#fff;padding:14px 22px;border-radius:10px;z-index:300;font-size:0.95rem;display:none;box-shadow:var(--elevation)}
-  .toast.error{background:var(--red)}
-
-  .file-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;margin-bottom:4px;background:var(--bg);border:1px solid var(--border);gap:8px}
-  .file-item .finfo{flex:1;min-width:0}
-  .file-item .fname{font-size:0.85rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .file-item .fmeta{font-size:0.72rem;color:var(--dim)}
-  .file-item .fbtn{font-size:0.75rem;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--dim);white-space:nowrap}
-  .file-item .fbtn:hover{color:var(--accent);border-color:var(--accent)}
-  .share-link-box{padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:0.78rem;font-family:monospace;word-break:break-all;margin-top:6px;display:none;color:var(--green)}
-
-  .chat-file-card{margin:6px 0;max-width:100%}
-  .chat-file-card .fbtn{background:var(--accent);color:#fff;border:none;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:0.78rem;white-space:nowrap}
-  .chat-file-card .fbtn:hover{filter:brightness(1.12)}
-  .sb-dl-btn{display:none;font-size:0.7rem;padding:1px 5px;border-radius:3px;cursor:pointer;color:var(--dim);margin-left:auto}
-  .sb-file:hover .sb-dl-btn{display:inline}
-  .sb-dl-btn:hover{color:var(--accent)}
-
-  .lang-btn{font-size:0.85rem;cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--dim);font-weight:500}
-  .lang-btn:hover{color:var(--text);border-color:var(--dim)}
+  body { font-size: 18px; }
+  .app { display: none; width: 100%; height: 100vh; grid-template-columns: 280px 1fr 380px; grid-template-rows: 56px 1fr; }
+  .app.show { display: grid; }
+  .sidebar { overflow-y: auto; padding: 12px; }
+  .sidebar .sec-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--bs-secondary-color); margin: 12px 0 6px; padding: 0 4px; }
+  .chat-area { display: flex; flex-direction: column; overflow: hidden; }
+  .chat-msgs { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .msg { margin-bottom: 20px; max-width: 80%; }
+  .msg.user { margin-left: auto; }
+  .msg.assistant { margin-right: auto; }
+  .msg .role { font-size: 0.8rem; font-weight: 500; color: var(--bs-secondary-color); margin-bottom: 4px; }
+  .msg .bubble { padding: 12px 18px; border-radius: 16px; line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; word-break: break-word; }
+  .msg.user .bubble { background: var(--bs-primary); color: #fff; border-bottom-right-radius: 6px; }
+  .msg.assistant .bubble { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-bottom-left-radius: 6px; }
+  .msg .bubble pre { background: var(--bs-dark); padding: 14px 18px; border-radius: 8px; overflow-x: auto; margin: 8px 0; font-size: 0.85rem; }
+  .right-panel { overflow-y: auto; padding: 16px; display: none; }
+  .right-panel.show { display: block; }
+  .code-preview { font-size: 0.85rem; font-family: 'SF Mono','Fira Code',monospace; white-space: pre-wrap; overflow-x: auto; max-height: 55vh; border-radius: 8px; }
+  .sb-project { padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+  .sb-project:hover { background: var(--bs-tertiary-bg); }
+  .sb-project.active { background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); }
+  .sb-project .del { color: var(--bs-secondary-color); font-size: 0.7rem; padding: 2px 6px; display: none; border-radius: 4px; }
+  .sb-project:hover .del { display: block; }
+  .sb-project .del:hover { color: var(--bs-danger); }
+  .sb-file { padding: 4px 12px 4px 24px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--bs-secondary-color); display: flex; align-items: center; gap: 6px; }
+  .sb-file:hover { color: var(--bs-body-color); background: var(--bs-tertiary-bg); }
+  .sb-file .ext-tag { font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; background: var(--bs-border-color); color: var(--bs-secondary-color); }
+  .sb-dl-btn { display: none; font-size: 0.7rem; padding: 1px 5px; border-radius: 3px; cursor: pointer; color: var(--bs-secondary-color); margin-left: auto; }
+  .sb-file:hover .sb-dl-btn { display: inline; }
+  .sb-dl-btn:hover { color: var(--bs-primary); }
+  .filetype-tabs { display: flex; gap: 4px; }
+  .ft-tab { padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; border: 1px solid var(--bs-border-color); background: transparent; color: var(--bs-secondary-color); transition: .15s; }
+  .ft-tab:hover { color: var(--bs-body-color); border-color: var(--bs-secondary-color); }
+  .ft-tab.active { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
+  .admin-tab { height: 40px; padding: 0 20px; background: transparent; border: none; color: var(--bs-secondary-color); font-size: 0.9rem; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: .15s; font-weight: 500; }
+  .admin-tab:hover { color: var(--bs-body-color); }
+  .admin-tab.active { color: var(--bs-primary); border-bottom-color: var(--bs-primary); }
+  .chat-file-card { margin: 6px 0; max-width: 100%; }
+  .chat-file-card .fbtn { background: var(--bs-primary); color: #fff; border: none; padding: 3px 10px; border-radius: 5px; cursor: pointer; font-size: 0.78rem; white-space: nowrap; }
+  .chat-file-card .fbtn:hover { filter: brightness(1.15); }
+  .file-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); gap: 8px; }
+  .file-item .finfo { flex: 1; min-width: 0; }
+  .file-item .fname { font-size: 0.85rem; color: var(--bs-body-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-item .fmeta { font-size: 0.72rem; color: var(--bs-secondary-color); }
+  .file-item .fbtn { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; cursor: pointer; border: 1px solid var(--bs-border-color); background: transparent; color: var(--bs-secondary-color); white-space: nowrap; }
+  .file-item .fbtn:hover { color: var(--bs-primary); border-color: var(--bs-primary); }
+  .share-link-box { padding: 8px; background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 6px; font-size: 0.78rem; font-family: monospace; word-break: break-all; margin-top: 6px; display: none; color: var(--bs-success); }
+  .storage-bar { background: var(--bs-tertiary-bg); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; }
+  .usage-bar { height: 100%; background: var(--bs-primary); border-radius: 2px 2px 0 0; min-width: 20px; transition: height .3s; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-box { text-align: center; }
+  .stat-box .val { font-size: 1.6rem; font-weight: 700; }
+  .stat-box .lbl { font-size: 0.8rem; color: var(--bs-secondary-color); margin-top: 4px; }
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 960px; margin-bottom: 48px; }
+  .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .plan-card { padding: 20px; text-align: center; cursor: pointer; transition: .15s; }
+  .plan-card:hover { border-color: var(--bs-primary); }
+  .plan-card.selected { border-color: var(--bs-success); }
+  .plan-card .name { font-size: 1.05rem; font-weight: 700; }
+  .plan-card .price { font-size: 1.6rem; color: var(--bs-warning); margin: 8px 0; font-weight: 700; }
+  .plan-card .detail { font-size: 0.85rem; color: var(--bs-secondary-color); }
+  .toast-msg { position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; min-width: 250px; }
+  @media (max-width: 992px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 56px 1fr; }
+    .sidebar, .right-panel { display: none !important; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .plan-grid, .settings-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 
 <!-- ====== Landing ====== -->
-<div id="landingPage" class="landing">
-  <div class="lang-bar"><button class="lang-btn" onclick="toggleLang()" id="langBtn0">EN</button></div>
-  <div class="hero">
-    <h1>AI Platform</h1>
-    <p key="hero_sub">用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发</p>
+<div id="landingPage" class="min-vh-100 d-flex flex-column align-items-center py-5">
+  <div class="text-end w-100 mb-3" style="max-width:960px">
+    <button class="btn btn-outline-secondary btn-sm" onclick="toggleLang()" id="langBtn0">EN</button>
+  </div>
+  <div class="text-center mb-5">
+    <h1 class="display-4 fw-bold text-primary mb-3">AI Platform</h1>
+    <p class="fs-5 text-secondary" key="hero_sub" id="heroSub">用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发</p>
   </div>
   <div class="feature-grid">
-    <div class="feature-card"><div class="icon">🤖</div><h3 key="feat_ai">AI 编程</h3><p key="feat_ai_desc">与 AI 对话生成代码，支持 Python/JS/HTML/PPT/Word/PDF</p></div>
-    <div class="feature-card"><div class="icon">📦</div><h3 key="feat_dl">下载分享</h3><p key="feat_dl_desc">项目打包下载，生成分享链接，一键导出</p></div>
-    <div class="feature-card"><div class="icon">💻</div><h3 key="feat_ssh">SSH 远程</h3><p key="feat_ssh_desc">独立 SSH 账号，任意终端 clone/push/edit</p></div>
+    <div class="card text-center p-4"><div class="fs-1 mb-2">🤖</div><h5 key="feat_ai">AI 编程</h5><p class="text-secondary mb-0" key="feat_ai_desc">与 AI 对话生成代码，支持 Python/JS/HTML/PPT/Word/PDF</p></div>
+    <div class="card text-center p-4"><div class="fs-1 mb-2">📦</div><h5 key="feat_dl">下载分享</h5><p class="text-secondary mb-0" key="feat_dl_desc">项目打包下载，生成分享链接，一键导出</p></div>
+    <div class="card text-center p-4"><div class="fs-1 mb-2">💻</div><h5 key="feat_ssh">SSH 远程</h5><p class="text-secondary mb-0" key="feat_ssh_desc">独立 SSH 账号，任意终端 clone/push/edit</p></div>
   </div>
   <div style="width:420px;max-width:95vw">
-    <div class="auth-tabs">
-      <button class="auth-tab active" onclick="switchAuthTab('login')" id="tabLogin" key="sign_in_title">登录</button>
-      <button class="auth-tab" onclick="switchAuthTab('register')" id="tabRegister" key="reg_title">注册</button>
+    <ul class="nav nav-tabs" role="tablist">
+      <li class="nav-item" role="presentation"><button class="nav-link active" id="tabLogin" onclick="switchAuthTab('login')" key="sign_in_title">登录</button></li>
+      <li class="nav-item" role="presentation"><button class="nav-link" id="tabRegister" onclick="switchAuthTab('register')" key="reg_title">注册</button></li>
+    </ul>
+    <div class="card rounded-top-0 p-4" id="loginCard">
+      <h4 class="text-primary mb-1" key="sign_in_title">登录</h4>
+      <p class="text-secondary mb-3" key="welcome">欢迎回来</p>
+      <div class="mb-3"><label class="form-label" key="username">用户名</label><input class="form-control" id="loginUser" placeholder="username"></div>
+      <div class="mb-3"><label class="form-label" key="password">密码</label><input class="form-control" id="loginPass" type="password" placeholder="password"></div>
+      <div class="text-danger small mb-2 d-none" id="loginErr"></div>
+      <button class="btn btn-success w-100" onclick="doLogin()" key="sign_in_btn">登录</button>
     </div>
-    <div class="auth-card" id="loginCard">
-    <h2 key="sign_in_title">登录</h2><p class="sub" key="welcome">欢迎回来</p>
-    <div class="form-group"><label key="username">用户名</label><input id="loginUser" placeholder="username"></div>
-    <div class="form-group"><label key="password">密码</label><input id="loginPass" type="password" placeholder="password"></div>
-    <div class="error-msg" id="loginErr"></div>
-    <button class="btn btn-primary" onclick="doLogin()" style="margin-top:8px" key="sign_in_btn">登录</button>
+    <div class="card rounded-top-0 p-4" id="registerCard" style="display:none">
+      <h4 class="text-primary mb-1" key="reg_title">创建账号</h4>
+      <p class="text-secondary mb-3" key="reg_sub">开始用 AI 构建项目</p>
+      <div class="mb-3"><label class="form-label" key="username">用户名</label><input class="form-control" id="regUser" placeholder="username"></div>
+      <div class="mb-3"><label class="form-label" key="email">邮箱</label><input class="form-control" id="regEmail" placeholder="email@example.com"></div>
+      <div class="mb-3"><label class="form-label" key="password">密码</label><input class="form-control" id="regPass" type="password" placeholder="min 6 chars"></div>
+      <div class="text-danger small mb-2 d-none" id="regErr"></div>
+      <button class="btn btn-success w-100" onclick="doRegister()" key="reg_btn">注册</button>
+    </div>
   </div>
-  <div class="auth-card" id="registerCard" style="display:none">
-    <h2 key="reg_title">创建账号</h2><p class="sub" key="reg_sub">开始用 AI 构建项目</p>
-    <div class="form-group"><label key="username">用户名</label><input id="regUser" placeholder="username"></div>
-    <div class="form-group"><label key="email">邮箱</label><input id="regEmail" placeholder="email@example.com"></div>
-    <div class="form-group"><label key="password">密码</label><input id="regPass" type="password" placeholder="min 6 chars"></div>
-    <div class="error-msg" id="regErr"></div>
-    <button class="btn btn-primary" onclick="doRegister()" style="margin-top:8px" key="reg_btn">注册</button>
-  </div>
-  </div>
-  <p style="margin-top:24px;color:var(--dim);font-size:0.85rem" key="footer_info">gristai.top | 免费 100 credits · 3项目 | Pro ¥49/月</p>
+  <p class="mt-4 text-secondary small" key="footer_info">gristai.top | 免费 100 credits · 3项目 | Pro ¥49/月</p>
 </div>
 
 <!-- ====== App ====== -->
 <div class="app" id="appLayout">
-  <div class="topbar">
-    <span class="logo">AI Platform</span>
-    <div class="tools">
-      <button class="lang-btn" onclick="toggleLang()" id="langBtn1">EN</button>
-      <span class="plan-badge" id="planBadge">Free</span>
-      <span class="credits" id="creditsDisplay">100 credits</span>
-      <button class="btn btn-sm btn-outline" onclick="openBilling()" key="upgrade">升级</button>
-      <button class="btn btn-sm btn-outline" onclick="showRightTab('info')" key="ssh_btn">SSH</button>
-      <span style="font-size:0.9rem;color:var(--dim)" id="userName"></span>
-      <button class="btn btn-sm btn-admin" id="adminBtn" style="display:none" onclick="openAdmin()" key="admin">⚡ 管理后台</button>
-      <button class="btn btn-sm btn-outline" onclick="doLogout()" key="logout">退出</button>
+  <!-- Topbar -->
+  <div class="bg-body-tertiary border-bottom d-flex align-items-center justify-content-between px-3" style="grid-column:1/-1">
+    <span class="fw-bold text-primary fs-5">AI Platform</span>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary btn-sm" onclick="toggleLang()" id="langBtn1">EN</button>
+      <span class="badge bg-primary" id="planBadge">Free</span>
+      <span class="text-warning small fw-semibold" id="creditsDisplay">100 credits</span>
+      <button class="btn btn-outline-secondary btn-sm" onclick="openBilling()" key="upgrade">升级</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="showRightTab('info')" key="ssh_btn">SSH</button>
+      <span class="small text-secondary" id="userName"></span>
+      <button class="btn btn-warning btn-sm fw-bold" id="adminBtn" style="display:none" onclick="openAdmin()" key="admin">⚡ 管理后台</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="doLogout()" key="logout">退出</button>
     </div>
   </div>
 
   <!-- Sidebar -->
-  <div class="sidebar">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+  <div class="sidebar bg-body-tertiary border-end">
+    <div class="d-flex align-items-center justify-content-between mb-1">
       <span class="sec-title" key="projects">项目</span>
-      <button class="btn btn-sm btn-outline" onclick="createProject()" key="new_project">+ 新建</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="createProject()" key="new_project">+ 新建</button>
     </div>
     <div id="projectList"></div>
     <div class="sec-title" key="files">文件</div>
@@ -233,10 +153,10 @@
 
   <!-- Chat -->
   <div class="chat-area">
-    <div class="chat-toolbar">
-      <span style="font-size:0.85rem;color:var(--dim);font-weight:500" key="model">模型:</span>
-      <select id="modelSelect" onchange="state.selectedModel=this.value"><option value="deepseek-chat">DeepSeek Chat</option></select>
-      <span style="font-size:0.85rem;color:var(--dim);font-weight:500;margin-left:8px" key="file_type">生成类型:</span>
+    <div class="d-flex align-items-center gap-3 p-2 px-3 bg-body-tertiary border-bottom flex-wrap">
+      <span class="small text-secondary fw-semibold" key="model">模型:</span>
+      <select class="form-select form-select-sm w-auto" id="modelSelect" onchange="state.selectedModel=this.value"><option value="deepseek-chat">DeepSeek Chat</option></select>
+      <span class="small text-secondary fw-semibold" key="file_type">生成类型:</span>
       <div class="filetype-tabs" id="fileTypeTabs">
         <span class="ft-tab active" data-ft="code" onclick="selectFileType('code')">💻 Code</span>
         <span class="ft-tab" data-ft="html" onclick="selectFileType('html')">🌐 HTML</span>
@@ -244,146 +164,158 @@
         <span class="ft-tab" data-ft="doc" onclick="selectFileType('doc')">📄 DOC</span>
       </div>
     </div>
-    <div class="chat-msgs" id="chatMessages"><div class="empty-state" key="chat_hint">选择项目，选模型和文件类型，开始对话构建</div></div>
-    <div class="chat-input-wrap">
-      <textarea id="chatInput" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}" placeholder="描述你想构建的内容..."></textarea>
-      <button class="btn btn-accent" style="height:48px;width:auto" onclick="sendMessage()" key="send">发送</button>
+    <div class="chat-msgs" id="chatMessages"><div class="text-center text-secondary py-5" key="chat_hint">选择项目，选模型和文件类型，开始对话构建</div></div>
+    <div class="border-top p-3 bg-body-tertiary d-flex gap-2">
+      <textarea class="form-control" id="chatInput" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}" placeholder="描述你想构建的内容..."></textarea>
+      <button class="btn btn-primary" style="height:auto" onclick="sendMessage()" key="send">发送</button>
     </div>
   </div>
 
-  <!-- Right -->
-  <div class="right-panel" id="rightPanel">
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="btn btn-sm btn-outline" style="flex:1" onclick="showRightTab('preview')" key="preview">预览</button>
-      <button class="btn btn-sm btn-outline" style="flex:1" onclick="showRightTab('info')" key="info_tab">信息</button>
-      <button class="btn btn-sm btn-outline" style="flex:1" onclick="showRightTab('files')" key="my_files">文件</button>
+  <!-- Right Panel -->
+  <div class="right-panel bg-body-tertiary border-start" id="rightPanel">
+    <div class="d-flex gap-2 mb-3">
+      <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="showRightTab('preview')" key="preview">预览</button>
+      <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="showRightTab('info')" key="info_tab">信息</button>
+      <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="showRightTab('files')" key="my_files">文件</button>
     </div>
     <div id="rightPreview">
-      <h3 key="latest_file">最新文件</h3>
-      <div class="code-preview" id="filePreview" key="no_file">未选择文件</div>
-      <div class="right-actions">
-        <button class="btn btn-primary" onclick="downloadProject()" key="download">下载 .tar.gz</button>
-        <button class="btn btn-outline" onclick="shareProject()" key="share">生成分享链接</button>
+      <h6 class="text-secondary text-uppercase small fw-semibold" key="latest_file">最新文件</h6>
+      <div class="code-preview bg-body p-3" id="filePreview" key="no_file">未选择文件</div>
+      <div class="d-grid gap-2 mt-3">
+        <button class="btn btn-success" onclick="downloadProject()" key="download">下载 .tar.gz</button>
+        <button class="btn btn-outline-secondary" onclick="shareProject()" key="share">生成分享链接</button>
       </div>
-      <div id="shareResult" style="margin-top:8px;font-size:0.85rem;word-break:break-all"></div>
+      <div id="shareResult" class="mt-2 small text-break"></div>
     </div>
     <div id="rightInfo" style="display:none">
-      <h3 key="project_info">项目信息</h3><div id="projectInfo" style="margin-bottom:16px"></div>
-      <h3 key="ssh_access">SSH 访问</h3><div class="code-preview" id="sshInfo">Loading...</div>
+      <h6 class="text-secondary text-uppercase small fw-semibold" key="project_info">项目信息</h6>
+      <div id="projectInfo" class="mb-3"></div>
+      <h6 class="text-secondary text-uppercase small fw-semibold" key="ssh_access">SSH 访问</h6>
+      <div class="code-preview bg-body p-3" id="sshInfo">Loading...</div>
     </div>
     <div id="rightFiles" style="display:none">
-      <h3 key="my_files">我的文件</h3>
-      <div id="storageBar" style="margin-bottom:16px;background:var(--bg);border-radius:8px;padding:10px 14px">
-        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--dim);margin-bottom:6px">
+      <h6 class="text-secondary text-uppercase small fw-semibold" key="my_files">我的文件</h6>
+      <div class="storage-bar">
+        <div class="d-flex justify-content-between small text-secondary mb-1">
           <span id="storageText">0 / 20 MB</span><span id="storagePct">0%</span>
         </div>
-        <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-          <div id="storageFill" style="height:100%;background:var(--green);border-radius:3px;width:0%;transition:width .3s"></div>
-        </div>
+        <div class="progress" style="height:6px"><div class="progress-bar bg-success" id="storageFill" style="width:0%"></div></div>
       </div>
-      <input type="file" id="fileUploadInput" style="display:none" onchange="uploadFile()" multiple>
-      <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="$('fileUploadInput').click()" key="upload_file">+ 上传文件</button>
-      <div id="userFilesList" style="font-size:0.85rem;color:var(--dim)">暂无文件</div>
+      <input type="file" id="fileUploadInput" class="d-none" onchange="uploadFile()" multiple>
+      <button class="btn btn-success w-100 mb-3" onclick="document.getElementById('fileUploadInput').click()" key="upload_file">+ 上传文件</button>
+      <div id="userFilesList" class="small text-secondary">暂无文件</div>
     </div>
   </div>
 </div>
 
 <!-- ====== Billing Modal ====== -->
-<div class="modal-overlay" id="billingModal">
-  <div class="modal">
-    <h2 key="upgrade_plan">升级套餐</h2>
-    <div class="plan-grid" id="planGrid"></div>
-    <div style="margin-bottom:16px">
-      <label style="font-size:0.85rem;color:var(--dim);margin-bottom:8px;display:block" key="pay_method">支付方式</label>
-      <label style="margin-right:20px"><input type="radio" name="payMethod" value="wechat" checked> <span key="wechat">微信支付</span></label>
-      <label><input type="radio" name="payMethod" value="alipay"> <span key="alipay">支付宝</span></label>
+<div class="modal fade" id="billingModal" tabindex="-1">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" key="upgrade_plan">升级套餐</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="plan-grid" id="planGrid"></div>
+      <div class="mb-3">
+        <label class="form-label" key="pay_method">支付方式</label>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="payMethod" value="wechat" checked><label class="form-check-label" key="wechat">微信支付</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="payMethod" value="alipay"><label class="form-check-label" key="alipay">支付宝</label></div>
+      </div>
+      <button class="btn btn-primary w-100" onclick="initiatePayment()" key="pay_now">立即支付</button>
+      <div id="paymentQR" class="text-center mt-3 p-4 bg-body rounded-3 d-none">
+        <p class="text-secondary mb-3" key="scan_pay">扫码支付（演示模式）</p>
+        <div class="bg-body-secondary rounded-3 mx-auto d-flex align-items-center justify-content-center text-secondary" style="width:180px;height:180px" id="qrPlaceholder">QR Code</div>
+        <p class="text-warning small my-3" key="confirm_hint">支付完成后点击确认</p>
+        <button class="btn btn-success" onclick="confirmPayment()" key="confirm_pay">确认支付</button>
+      </div>
     </div>
-    <button class="btn btn-accent" style="width:100%" onclick="initiatePayment()" key="pay_now">立即支付</button>
-    <div id="paymentQR" style="text-align:center;margin:16px 0;padding:20px;background:var(--bg);border-radius:10px;display:none">
-      <p style="color:var(--dim);margin-bottom:8px" key="scan_pay">扫码支付（演示模式）</p>
-      <div style="width:180px;height:180px;background:var(--surface);margin:0 auto;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:0.8rem" id="qrPlaceholder">QR Code</div>
-      <p style="font-size:0.85rem;color:var(--orange);margin:8px 0" key="confirm_hint">支付完成后点击确认</p>
-      <button class="btn btn-primary" onclick="confirmPayment()" key="confirm_pay">确认支付</button>
-    </div>
-    <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="closeBilling()" key="cancel">取消</button>
-  </div>
+  </div></div>
 </div>
 
 <!-- ====== Admin Modal ====== -->
-<div class="modal-overlay" id="adminModal">
-  <div class="modal" style="min-width:900px;max-height:95vh">
-    <h2>⚡ <span key="admin_dashboard">管理后台</span></h2>
-    <!-- Tabs -->
-    <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border)">
-      <button class="admin-tab active" onclick="adminTab('dashboard')" id="atabDashboard">📊 概览</button>
-      <button class="admin-tab" onclick="adminTab('users')" id="atabUsers">👥 用户</button>
-      <button class="admin-tab" onclick="adminTab('files')" id="atabFiles">📄 文件</button>
-      <button class="admin-tab" onclick="adminTab('system')" id="atabSystem">⚙️ 系统</button>
-    </div>
-
-    <!-- Dashboard Tab -->
-    <div id="adminDashboard">
-      <div class="stats-row" id="adminStats"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
-        <div class="admin-card"><h4>📈 7日用量</h4><div id="usageChart" style="display:flex;align-items:flex-end;gap:4px;height:120px;padding:8px 0"></div></div>
-        <div class="admin-card"><h4>🏆 Top 用户</h4><div id="topUsers"></div></div>
-        <div class="admin-card"><h4>🖥️ 系统健康</h4><div id="healthInfo">Loading...</div></div>
-        <div class="admin-card"><h4>💳 快速统计</h4><div id="quickStats"></div></div>
-      </div>
-    </div>
-
-    <!-- Users Tab -->
-    <div id="adminUsers" style="display:none">
-      <div style="overflow-x:auto"><table class="user-table"><thead><tr>
-        <th key="th_user">用户</th><th key="th_email">邮箱</th><th key="th_plan">套餐</th><th key="th_tier">模型</th><th key="th_credits">余额</th><th key="th_storage">空间</th><th key="th_apikey">Key</th><th key="th_actions">操作</th>
-      </tr></thead><tbody id="adminUserTable"></tbody></table></div>
-      <!-- User Detail Panel -->
-      <div id="userDetailPanel" style="display:none;margin-top:16px;padding:20px;background:var(--bg);border:1px solid var(--border);border-radius:10px"></div>
-    </div>
-
-    <!-- Files Tab -->
-    <div id="adminFiles" style="display:none">
-      <div style="overflow-x:auto"><table class="user-table"><thead><tr>
-        <th>用户</th><th>项目</th><th>类型</th><th>模型</th><th>Credits</th><th>时间</th>
-      </tr></thead><tbody id="adminFilesTable"></tbody></table></div>
-      <div style="margin-top:12px">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <span style="font-size:0.82rem;color:var(--dim);font-weight:600">📤 用户上传文件</span>
-          <button class="btn btn-sm btn-outline" onclick="loadAdminUploadedFiles()">刷新</button>
+<div class="modal fade" id="adminModal" tabindex="-1">
+  <div class="modal-dialog modal-xl"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">⚡ <span key="admin_dashboard">管理后台</span></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item"><button class="nav-link admin-tab active" onclick="adminTab('dashboard')" id="atabDashboard">📊 概览</button></li>
+        <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('users')" id="atabUsers">👥 用户</button></li>
+        <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('files')" id="atabFiles">📄 文件</button></li>
+        <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('revenue')" id="atabRevenue">💰 收益</button></li>
+        <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('system')" id="atabSystem">⚙️ 系统</button></li>
+      </ul>
+      <div id="adminDashboard">
+        <div class="stats-row" id="adminStats"></div>
+        <div class="row g-3 mt-2">
+          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📈 7日用量</h6><div id="usageChart" class="d-flex align-items-end gap-1" style="height:120px;padding:8px 0"></div></div></div>
+          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">🏆 Top 用户</h6><div id="topUsers"></div></div></div>
+          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">🖥️ 系统健康</h6><div id="healthInfo">Loading...</div></div></div>
+          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">💳 快速统计</h6><div id="quickStats"></div></div></div>
         </div>
-        <table class="user-table"><thead><tr>
-          <th>用户</th><th>文件名</th><th>大小</th><th>下载</th><th>时间</th><th>操作</th>
-        </tr></thead><tbody id="adminUploadedFilesTable"></tbody></table>
       </div>
-      <div style="margin-top:12px">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <span style="font-size:0.82rem;color:var(--dim);font-weight:600">📤 公开分享文件</span>
-          <button class="btn btn-sm btn-outline" onclick="loadAdminPublicFiles()">刷新</button>
+      <div id="adminUsers" style="display:none">
+        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+          <th key="th_user">用户</th><th key="th_email">邮箱</th><th key="th_plan">套餐</th><th key="th_tier">模型</th><th key="th_credits">余额</th><th key="th_storage">空间</th><th key="th_apikey">Key</th><th key="th_actions">操作</th>
+        </tr></thead><tbody id="adminUserTable"></tbody></table></div>
+        <div id="userDetailPanel" class="card p-4 mt-3 d-none"></div>
+      </div>
+      <div id="adminFiles" style="display:none">
+        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+          <th>用户</th><th>项目</th><th>类型</th><th>模型</th><th>Credits</th><th>时间</th>
+        </tr></thead><tbody id="adminFilesTable"></tbody></table></div>
+        <div class="mt-3">
+          <div class="d-flex gap-2 align-items-center mb-2">
+            <span class="small text-secondary fw-semibold">📤 用户上传文件</span>
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadAdminUploadedFiles()">刷新</button>
+          </div>
+          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+            <th>用户</th><th>文件名</th><th>大小</th><th>下载</th><th>时间</th><th>操作</th>
+          </tr></thead><tbody id="adminUploadedFilesTable"></tbody></table></div>
         </div>
-        <table class="user-table"><thead><tr>
-          <th>Token</th><th>文件名</th><th>大小</th><th>下载</th><th>密码</th><th>过期</th><th>操作</th>
-        </tr></thead><tbody id="adminPublicFilesTable"></tbody></table>
+        <div class="mt-3">
+          <div class="d-flex gap-2 align-items-center mb-2">
+            <span class="small text-secondary fw-semibold">📤 公开分享文件</span>
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadAdminPublicFiles()">刷新</button>
+          </div>
+          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+            <th>Token</th><th>文件名</th><th>大小</th><th>下载</th><th>密码</th><th>过期</th><th>操作</th>
+          </tr></thead><tbody id="adminPublicFilesTable"></tbody></table></div>
+        </div>
+      </div>
+      <div id="adminRevenue" style="display:none">
+        <div class="row g-3 mb-3" id="revenueStats"></div>
+        <div class="row g-3">
+          <div class="col-md-6"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📅 月度收入趋势</h6><div id="revenueChart" class="d-flex align-items-end gap-1" style="height:140px;padding:8px 0"></div></div></div>
+          <div class="col-md-3"><div class="card p-3"><h6 class="text-secondary small text-uppercase">📋 按套餐</h6><div id="revenueByPlan"></div></div></div>
+          <div class="col-md-3"><div class="card p-3"><h6 class="text-secondary small text-uppercase">💳 按方式</h6><div id="revenueByMethod"></div></div></div>
+        </div>
+        <div class="card p-3 mt-3"><h6 class="text-secondary small text-uppercase mb-2">🧾 最近交易</h6>
+          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr>
+            <th>用户</th><th>交易号</th><th>金额</th><th>套餐</th><th>方式</th><th>状态</th><th>时间</th>
+          </tr></thead><tbody id="revenueTxTable"></tbody></table></div>
+        </div>
+      </div>
+      <div id="adminSystem" style="display:none">
+        <div class="settings-grid">
+          <div class="mb-3"><label class="form-label" key="dskey_label">系统 DeepSeek API Key</label><input class="form-control" id="setDskey" placeholder="sk-..."><div class="form-text" key="dskey_hint">全局默认 Key</div></div>
+          <div class="mb-3"><label class="form-label">🏠 主页欢迎语</label><input class="form-control" id="setWelcome" placeholder="用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发"><div class="form-text">显示在主页大标题下方</div></div>
+          <div class="mb-3"><label class="form-label" key="jwt_label">JWT Secret</label><input class="form-control" id="setSecret"></div>
+          <div class="mb-3"><label class="form-label" key="host_label">域名/IP</label><input class="form-control" id="setHost"></div>
+          <div class="mb-3"><label class="form-label" key="price_label">定价 (JSON)</label><textarea class="form-control" id="setPlans" rows="4" style="font-family:monospace"></textarea></div>
+          <hr>
+          <h6 class="text-secondary mb-2">💳 支付配置</h6>
+          <div class="mb-3"><label class="form-label">支付宝 APPID</label><input class="form-control" id="setAlipayAppid" placeholder="2021xxxxxxxxxxxx"></div>
+          <div class="mb-3"><label class="form-label">支付宝应用私钥</label><textarea class="form-control" id="setAlipayPrivateKey" rows="3" style="font-family:monospace" placeholder="-----BEGIN RSA PRIVATE KEY-----"></textarea></div>
+          <div class="mb-3"><label class="form-label">支付宝公钥</label><textarea class="form-control" id="setAlipayPublicKey" rows="3" style="font-family:monospace" placeholder="-----BEGIN PUBLIC KEY-----"></textarea></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()" key="save_settings">💾 保存设置</button>
+        <div class="card p-3 mt-3"><h6 class="text-secondary small text-uppercase">🖥️ 系统详情</h6><div id="systemDetail">Loading...</div></div>
       </div>
     </div>
-
-    <!-- System Tab -->
-    <div id="adminSystem" style="display:none">
-      <div class="settings-grid">
-        <div class="setting-item"><label key="dskey_label">系统 DeepSeek API Key</label><input id="setDskey" placeholder="sk-..."><p style="font-size:0.75rem;color:var(--dim);margin-top:4px" key="dskey_hint">全局默认 Key</p></div>
-        <div class="setting-item"><label key="jwt_label">JWT Secret</label><input id="setSecret"></div>
-        <div class="setting-item"><label key="host_label">域名/IP</label><input id="setHost"></div>
-        <div class="setting-item"><label key="price_label">定价 (JSON)</label><textarea id="setPlans" rows="4" style="font-size:0.78rem;font-family:monospace;resize:vertical"></textarea></div>
-      </div>
-      <button class="btn btn-accent" onclick="saveSettings()" key="save_settings" style="margin-bottom:8px">💾 保存设置</button>
-      <div class="admin-card" style="margin-top:12px"><h4>🖥️ 系统详情</h4><div id="systemDetail">Loading...</div></div>
-    </div>
-
-    <button class="btn btn-outline" style="width:100%;margin-top:16px" onclick="closeAdmin()" key="close">关闭</button>
-  </div>
+  </div></div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast-msg alert alert-success" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // ── i18n ─────────────────────────────────────────────
 const I18N = {
@@ -475,22 +407,26 @@ async function api(method,path,body){
 
 // ── Auth ──────────────────────────────────────────────
 function switchAuthTab(tab){
-  if(tab==='login'){$('loginCard').style.display='block';$('registerCard').style.display='none';$('tabLogin').classList.add('active');$('tabRegister').classList.remove('active')}
-  else{$('loginCard').style.display='none';$('registerCard').style.display='block';$('tabRegister').classList.add('active');$('tabLogin').classList.remove('active')}
+  if(tab==='login'){
+    $('loginCard').style.display='block';$('registerCard').style.display='none';
+    $('tabLogin').classList.add('active');$('tabRegister').classList.remove('active');
+  } else {
+    $('loginCard').style.display='none';$('registerCard').style.display='block';
+    $('tabRegister').classList.add('active');$('tabLogin').classList.remove('active');
+  }
 }
 async function doLogin(){try{const d=await api('POST','/api/auth/login',{username:$('loginUser').value,password:$('loginPass').value});setAuth(d);enterApp()}catch(e){showErr('loginErr',e.message)}}
 async function doRegister(){try{const d=await api('POST','/api/auth/register',{username:$('regUser').value,email:$('regEmail').value,password:$('regPass').value});setAuth(d);enterApp()}catch(e){showErr('regErr',e.message)}}
 function setAuth(d){state.token=d.access_token;state.user=d.user;if(d.access_token)localStorage.setItem('ai_platform_token',d.access_token)}
 function doLogout(){localStorage.removeItem('ai_platform_token');document.body.classList.remove('app-mode');state={...state,token:null,user:null};location.reload()}
-function showErr(id,msg){const e=$(id);e.textContent=msg;e.style.display='block';setTimeout(()=>e.style.display='none',4000)}
+function showErr(id,msg){const e=$(id);e.textContent=msg;e.classList.remove('d-none');setTimeout(()=>e.classList.add('d-none'),4000)}
 
 async function enterApp(){
-  $('landingPage').style.display='none';$('appLayout').style.display='grid';
+  $('landingPage').style.display='none';$('appLayout').classList.add('show');
   document.body.classList.add('app-mode');
   $('userName').textContent=state.user.username;$('planBadge').textContent=state.user.plan;
   $('creditsDisplay').textContent=Math.round(state.user.credits)+' credits';
   if(state.user.is_admin)$('adminBtn').style.display='inline-flex';
-  // Load models for this user
   try{const models=await api('GET','/api/models');populateModels(models)}catch(e){}
   toggleLang();
   await refreshProjects();
@@ -512,10 +448,10 @@ function selectFileType(ft){
 async function refreshProjects(){state.projects=await api('GET','/api/projects');renderProjects()}
 function renderProjects(){
   const el=$('projectList');
-  if(!state.projects.length){el.innerHTML='<div style="padding:8px;font-size:0.85rem;color:var(--dim)">No projects</div>';return}
+  if(!state.projects.length){el.innerHTML='<div class="p-2 small text-secondary">No projects</div>';return}
   el.innerHTML=state.projects.map(p=>`
     <div class="sb-project${state.activeProject===p.id?' active':''}" onclick="selectProject('${p.id}')">
-      <span>${esc(p.name)}<span style="color:var(--dim);font-size:0.75rem;margin-left:6px">${p.file_count}f</span></span>
+      <span>${esc(p.name)}<span class="text-secondary ms-1" style="font-size:0.75rem">${p.file_count}f</span></span>
       <span class="del" onclick="event.stopPropagation();delProject('${p.id}')">✕</span>
     </div>`).join('');
 }
@@ -529,13 +465,13 @@ async function selectProject(id){
 async function downloadProject(){if(!state.activeProject)return;window.open(API+`/api/projects/${state.activeProject}/download?token=`+state.token,'_blank')}
 async function shareProject(){
   if(!state.activeProject)return;const link=await api('POST',`/api/projects/${state.activeProject}/share?expires_hours=48`);
-  $('shareResult').innerHTML=`<p style="color:var(--green)">Share:</p><code>${link.url}</code>`;
+  $('shareResult').innerHTML=`<p class="text-success">Share:</p><code>${link.url}</code>`;
 }
 
 // ── Files ────────────────────────────────────────────
 function renderFiles(){
   const el=$('fileTree');
-  if(!state.files.length){el.innerHTML='<div style="color:var(--dim);font-size:0.82rem;padding:4px">'+t('no_file')+'</div>';return}
+  if(!state.files.length){el.innerHTML='<div class="text-secondary small p-2">'+t('no_file')+'</div>';return}
   el.innerHTML=state.files.map(f=>`<div class="sb-file" onclick="previewFile('${f.id}')"><span class="ext-tag">${f.path.split('.').pop()||'?'}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.path)}</span><span class="sb-dl-btn" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Download">⬇</span></div>`).join('');
 }
 function previewFile(id){const f=state.files.find(f=>f.id===id);if(!f)return;state.activeFile=f;$('filePreview').textContent=f.content}
@@ -548,7 +484,6 @@ async function sendMessage(){
   try{
     const r=await api('POST','/api/chat',{project_id:state.activeProject,messages:[{role:'user',content:text}],model:state.selectedModel,file_type:state.selectedFileType});
     $('creditsDisplay').textContent=Math.round(r.credits_remaining)+' credits';state.user.credits=r.credits_remaining;
-    // Refresh files -- backend already saved them via _parse_and_save_files
     state.files=await api('GET',`/api/projects/${state.activeProject}/files`);
     state.projects=await api('GET','/api/projects');
     renderFiles();renderProjects();
@@ -556,7 +491,7 @@ async function sendMessage(){
   }catch(e){addMsg('assistant','Error: '+e.message)}
 }
 function addMsg(role,content){
-  const el=$('chatMessages');if(el.querySelector('.empty-state'))el.innerHTML='';
+  const el=$('chatMessages');if(el.querySelector('.text-center'))el.innerHTML='';
   const lines=content.split('\n');let parts=[];
   for(let i=0;i<lines.length;i++){
     const line=lines[i];
@@ -565,14 +500,14 @@ function addMsg(role,content){
     const bm=line.match(/^\[built\]\s+(.+)$/);
     if(bm){bm[1].split(',').forEach(p=>parts.push(renderFileCard(p.trim())));continue}
     const b2m=line.match(/^\[build\]\s+(.+)$/);
-    if(b2m){parts.push('<span style="color:var(--orange);font-size:0.85rem">⚙️ '+esc(b2m[1])+'</span>');continue}
+    if(b2m){parts.push('<span class="text-warning" style="font-size:0.85rem">⚙️ '+esc(b2m[1])+'</span>');continue}
     parts.push(esc(line));
     if(i<lines.length-1)parts.push('\n');
   }
   el.innerHTML+=`<div class="msg ${role}"><div class="role">${t(role)}</div><div class="bubble">${parts.join('')}</div></div>`;
   el.scrollTop=el.scrollHeight;
 }
-function renderChat(){$('chatMessages').innerHTML='<div class="empty-state">'+t('chat_hint')+'</div>'}
+function renderChat(){$('chatMessages').innerHTML='<div class="text-center text-secondary py-5">'+t('chat_hint')+'</div>'}
 
 // ── Right Panel ──────────────────────────────────────
 function showRightTab(tab){
@@ -582,7 +517,7 @@ function showRightTab(tab){
   if(tab==='info')loadSSH();
   if(tab==='files')loadUserFiles();
 }
-function renderProjectInfo(p){if(!p)return;$('projectInfo').innerHTML=`<p style="font-size:0.95rem;font-weight:600">${esc(p.name)}</p><p style="font-size:0.85rem;color:var(--dim)">${p.file_count} files · ${new Date(p.updated_at).toLocaleString()}</p>`}
+function renderProjectInfo(p){if(!p)return;$('projectInfo').innerHTML=`<p class="fw-semibold">${esc(p.name)}</p><p class="small text-secondary">${p.file_count} files · ${new Date(p.updated_at).toLocaleString()}</p>`}
 async function loadSSH(){try{const i=await api('GET','/api/ssh/info');$('sshInfo').textContent=i.command+'\n\nProjects in ~/projects/'}catch(e){$('sshInfo').textContent='Login required'}}
 
 // ── Admin ────────────────────────────────────────────
@@ -591,119 +526,117 @@ let currentAdminTab='dashboard';
 function adminTab(tab){
   currentAdminTab=tab;
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.toggle('active',t.id==='atab'+tab.charAt(0).toUpperCase()+tab.slice(1)));
-  ['Dashboard','Users','Files','System'].forEach(t=>{const el=$('admin'+t);if(el)el.style.display=t.toLowerCase()===tab?'block':'none'});
+  ['Dashboard','Users','Files','Revenue','System'].forEach(t=>{const el=$('admin'+t);if(el)el.style.display=t.toLowerCase()===tab?'block':'none'});
   if(tab==='dashboard')loadDashboard();
   if(tab==='users')loadAdminUsers();
   if(tab==='files'){loadAdminFiles();loadAdminUploadedFiles();loadAdminPublicFiles();}
+  if(tab==='revenue')loadAdminRevenue();
   if(tab==='system')loadSystemTab();
 }
 
-async function openAdmin(){
-  $('adminModal').classList.add('show');
-  const settings=await api('GET','/api/admin/settings');
-  $('setDskey').value=settings.deepseek_api_key||'';
-  $('setSecret').value=settings.secret_key||'';
-  $('setHost').value=settings.git_host||'gristai.top';
-  $('setPlans').value=settings.pricing_plans||JSON.stringify({"free":{"name":"Free","price_cny":0,"credits":100,"max_projects":3,"model_tier":"free"},"pro":{"name":"Pro","price_cny":49,"credits":5000,"max_projects":20,"model_tier":"paid"},"enterprise":{"name":"Enterprise","price_cny":199,"credits":50000,"max_projects":999,"model_tier":"paid"}},null,2);
+function openAdmin(){
+  const modal=new bootstrap.Modal($('adminModal'));
+  modal.show();
+  api('GET','/api/admin/settings').then(settings=>{
+    $('setDskey').value=settings.deepseek_api_key||'';
+    $('setSecret').value=settings.secret_key||'';
+    $('setHost').value=settings.git_host||'gristai.top';
+    $('setPlans').value=settings.pricing_plans||JSON.stringify({"free":{"name":"Free","price_cny":0,"credits":100,"max_projects":3,"model_tier":"free"},"pro":{"name":"Pro","price_cny":49,"credits":5000,"max_projects":20,"model_tier":"paid"},"enterprise":{"name":"Enterprise","price_cny":199,"credits":50000,"max_projects":999,"model_tier":"paid"}},null,2);
+  });
   adminTab('dashboard');
   toggleLang();
 }
 
-function closeAdmin(){$('adminModal').classList.remove('show');$('userDetailPanel').style.display='none'}
+function closeAdmin(){bootstrap.Modal.getInstance($('adminModal')).hide();$('userDetailPanel').classList.add('d-none')}
 
 async function loadDashboard(){
   const d=await api('GET','/api/admin/dashboard');
   $('adminStats').innerHTML=`
-    <div class="stat-box"><div class="val">${d.users}</div><div class="lbl">Users</div></div>
-    <div class="stat-box"><div class="val">${d.active_today}</div><div class="lbl">今日活跃</div></div>
-    <div class="stat-box"><div class="val">${d.projects}</div><div class="lbl">Projects</div></div>
-    <div class="stat-box"><div class="val">${d.generated_files}</div><div class="lbl">生成文件</div></div>
-    <div class="stat-box"><div class="val">¥${d.revenue_cny}</div><div class="lbl">收入</div></div>
-    <div class="stat-box"><div class="val">${d.today_calls}</div><div class="lbl">今日调用</div></div>
-    <div class="stat-box"><div class="val" style="color:var(--orange)">${d.today_credits.toFixed(1)}</div><div class="lbl">今日用量</div></div>
-    <div class="stat-box"><div class="val" style="color:var(--orange)">${d.total_credits.toFixed(1)}</div><div class="lbl">总用量</div></div>`;
+    <div class="card p-3 text-center stat-box"><div class="val text-primary">${d.users}</div><div class="lbl">Users</div></div>
+    <div class="card p-3 text-center stat-box"><div class="val text-success">${d.active_today}</div><div class="lbl">今日活跃</div></div>
+    <div class="card p-3 text-center stat-box"><div class="val text-info">${d.projects}</div><div class="lbl">Projects</div></div>
+    <div class="card p-3 text-center stat-box"><div class="val text-info">${d.generated_files}</div><div class="lbl">生成文件</div></div>
+    <div class="card p-3 text-center stat-box"><div class="val text-warning">¥${d.revenue_cny}</div><div class="lbl">收入</div></div>
+    <div class="card p-3 text-center stat-box"><div class="val text-success">${d.today_calls}</div><div class="lbl">今日调用</div></div>
+    <div class="card p-3 text-center stat-box"><div class="val text-warning">${d.today_credits.toFixed(1)}</div><div class="lbl">今日用量</div></div>
+    <div class="card p-3 text-center stat-box"><div class="val text-warning">${d.total_credits.toFixed(1)}</div><div class="lbl">总用量</div></div>`;
 
-  // Usage chart
   const maxVal=Math.max(...d.daily_usage.map(u=>u.credits),1);
   $('usageChart').innerHTML=d.daily_usage.map(u=>{
     const h=Math.max(4,u.credits/maxVal*100);
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end">
+    return `<div class="d-flex flex-column align-items-center justify-content-end" style="flex:1;height:100%">
       <div class="usage-bar" style="height:${h}%;width:100%" title="${u.date}: ${u.credits.toFixed(1)}"></div>
-      <span style="font-size:0.65rem;color:var(--dim);margin-top:4px">${u.date.slice(5)}</span></div>`;
+      <span class="small text-secondary mt-1" style="font-size:0.65rem">${u.date.slice(5)}</span></div>`;
   }).join('');
 
-  // Top users
   $('topUsers').innerHTML=d.top_users.map((u,i)=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem">
+    <div class="d-flex justify-content-between py-1 border-bottom small">
       <span>${i+1}. ${esc(u.username)}</span>
-      <span style="color:var(--orange)">${u.total_used.toFixed(1)} used</span></div>`).join('')||'No data';
+      <span class="text-warning">${u.total_used.toFixed(1)} used</span></div>`).join('')||'No data';
 
-  // Quick stats
   $('quickStats').innerHTML=`
-    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem"><span>待处理支付</span><span style="color:var(--orange)">${d.pending_payments}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem"><span>项目总数</span><span>${d.projects}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.85rem"><span>文件总数</span><span>${d.files}</span></div>`;
+    <div class="d-flex justify-content-between py-1 small"><span>待处理支付</span><span class="text-warning">${d.pending_payments}</span></div>
+    <div class="d-flex justify-content-between py-1 small"><span>项目总数</span><span>${d.projects}</span></div>
+    <div class="d-flex justify-content-between py-1 small"><span>文件总数</span><span>${d.files}</span></div>`;
 
-  // Health
   try{const h=await api('GET','/api/admin/health');
     $('healthInfo').innerHTML=`
-      <div style="margin:6px 0;font-size:0.85rem"><span>CPU:</span><div style="background:var(--border);height:6px;border-radius:3px;margin:4px 0"><div style="width:${h.cpu_pct}%;height:100%;background:var(--accent);border-radius:3px"></div></div><span style="font-size:0.75rem;color:var(--dim)">${h.cpu_pct}%</span></div>
-      <div style="margin:6px 0;font-size:0.85rem"><span>内存:</span><div style="background:var(--border);height:6px;border-radius:3px;margin:4px 0"><div style="width:${h.mem_used_pct}%;height:100%;background:${h.mem_used_pct>80?'var(--red)':'var(--green)'};border-radius:3px"></div></div><span style="font-size:0.75rem;color:var(--dim)">${h.mem_used_pct}% / ${h.mem_total_gb}GB</span></div>
-      <div style="margin:6px 0;font-size:0.85rem"><span>磁盘:</span><div style="background:var(--border);height:6px;border-radius:3px;margin:4px 0"><div style="width:${h.disk_used_pct}%;height:100%;background:${h.disk_used_pct>80?'var(--red)':'var(--green)'};border-radius:3px"></div></div><span style="font-size:0.75rem;color:var(--dim)">${h.disk_used_pct}% / ${h.disk_free_gb}GB free</span></div>
-      <div style="font-size:0.8rem;color:var(--dim);margin-top:4px">运行时间: ${h.uptime_hours}h</div>`;
+      <div class="mb-2 small"><span>CPU:</span><div class="progress mt-1" style="height:6px"><div class="progress-bar bg-primary" style="width:${h.cpu_pct}%"></div></div><span class="small text-secondary">${h.cpu_pct}%</span></div>
+      <div class="mb-2 small"><span>内存:</span><div class="progress mt-1" style="height:6px"><div class="progress-bar ${h.mem_used_pct>80?'bg-danger':'bg-success'}" style="width:${h.mem_used_pct}%"></div></div><span class="small text-secondary">${h.mem_used_pct}% / ${h.mem_total_gb}GB</span></div>
+      <div class="mb-2 small"><span>磁盘:</span><div class="progress mt-1" style="height:6px"><div class="progress-bar ${h.disk_used_pct>80?'bg-danger':'bg-success'}" style="width:${h.disk_used_pct}%"></div></div><span class="small text-secondary">${h.disk_used_pct}% / ${h.disk_free_gb}GB free</span></div>
+      <div class="small text-secondary">运行时间: ${h.uptime_hours}h</div>`;
   }catch(e){$('healthInfo').textContent='N/A'}
 }
 
 async function loadAdminUsers(){
   const users=await api('GET','/api/admin/users');
   $('adminUserTable').innerHTML=users.map(u=>`<tr>
-    <td><strong>${esc(u.username)}</strong>${u.is_admin?' ⚡ ':''}</td>
-    <td style="font-size:0.82rem">${esc(u.email)}</td>
+    <td><strong>${esc(u.username)}</strong>${u.is_admin?' ⚡':''}</td>
+    <td class="small">${esc(u.email)}</td>
     <td>${u.plan}</td>
-    <td style="color:${u.model_tier==='paid'?'var(--green)':'var(--dim)'}">${u.model_tier||'free'}</td>
-    <td style="color:var(--orange)">${Math.round(u.credits)}</td>
-    <td style="font-size:0.82rem">${(u.storage_limit/1024/1024).toFixed(0)}MB</td>
-    <td style="font-size:0.75rem">${u.has_api_key?'已设置':'未设置'}</td>
-    <td style="display:flex;gap:3px;flex-wrap:wrap">
-      <button class="btn btn-sm btn-outline" onclick="showUserDetail('${u.id}')" title="详情">📋</button>
-      <button class="btn btn-sm btn-outline" onclick="setUserApiKey('${u.id}','${esc(u.username)}')" title="设置API Key">🔑</button>
-      <button class="btn btn-sm btn-outline" onclick="setStorageLimit('${u.id}','${esc(u.username)}',${u.storage_limit})" title="调整空间">💾</button>
-      <button class="btn btn-sm btn-outline" onclick="adjustBalance('${u.id}','${esc(u.username)}',${u.credits})" title="调整余额">💰</button>
-      <button class="btn btn-sm btn-outline" onclick="toggleUserTier('${u.id}','${u.model_tier||'free'}')" title="切换模型等级">🔄</button>
-      <button class="btn btn-sm btn-outline" onclick="resetUserPw('${u.id}','${esc(u.username)}')" title="重置密码">🔒</button>
-      <button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delUser('${u.id}','${esc(u.username)}')" title="删除">✕</button>
+    <td class="${u.model_tier==='paid'?'text-success':'text-secondary'}">${u.model_tier||'free'}</td>
+    <td class="text-warning">${Math.round(u.credits)}</td>
+    <td class="small">${(u.storage_limit/1024/1024).toFixed(0)}MB</td>
+    <td class="small">${u.has_api_key?'已设置':'未设置'}</td>
+    <td class="d-flex gap-1 flex-wrap">
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="showUserDetail('${u.id}')" title="详情">📋</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="setStorageLimit('${u.id}','${esc(u.username)}',${u.storage_limit})" title="调整空间">💾</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="setUserApiKey('${u.id}','${esc(u.username)}')" title="设置API Key">🔑</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="adjustBalance('${u.id}','${esc(u.username)}',${u.credits})" title="调整余额">💰</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="toggleUserTier('${u.id}','${u.model_tier||'free'}')" title="切换模型等级">🔄</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="resetUserPw('${u.id}','${esc(u.username)}')" title="重置密码">🔒</button>
+      <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="delUser('${u.id}','${esc(u.username)}')" title="删除">✕</button>
     </td></tr>`).join('');
 }
 
 async function showUserDetail(uid){
   const d=await api('GET',`/api/admin/users/${uid}/detail`);
   const panel=$('userDetailPanel');
-  panel.style.display='block';
+  panel.classList.remove('d-none');
   panel.innerHTML=`
-    <h4 style="margin-bottom:12px">👤 ${esc(d.user.username)} 详情</h4>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:0.85rem;margin-bottom:16px">
-      <div><span style="color:var(--dim)">Plan:</span> ${d.user.plan}</div>
-      <div><span style="color:var(--dim)">Tier:</span> ${d.user.model_tier}</div>
-      <div><span style="color:var(--dim)">Credits:</span> <span style="color:var(--orange)">${Math.round(d.user.credits)}</span></div>
-      <div><span style="color:var(--dim)">Projects:</span> ${d.projects.length}</div>
-      <div><span style="color:var(--dim)">Files:</span> ${d.file_count}</div>
-      <div><span style="color:var(--dim)">Generated:</span> ${d.generated_files.length}</div>
+    <h6>👤 ${esc(d.user.username)} 详情</h6>
+    <div class="row g-3 small mb-3">
+      <div class="col-sm-4"><span class="text-secondary">Plan:</span> ${d.user.plan}</div>
+      <div class="col-sm-4"><span class="text-secondary">Tier:</span> ${d.user.model_tier}</div>
+      <div class="col-sm-4"><span class="text-secondary">Credits:</span> <span class="text-warning">${Math.round(d.user.credits)}</span></div>
+      <div class="col-sm-4"><span class="text-secondary">Projects:</span> ${d.projects.length}</div>
+      <div class="col-sm-4"><span class="text-secondary">Files:</span> ${d.file_count}</div>
+      <div class="col-sm-4"><span class="text-secondary">Generated:</span> ${d.generated_files.length}</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div>
-        <h5 style="font-size:0.8rem;color:var(--dim);margin-bottom:8px">📊 Recent Usage</h5>
-        <div style="max-height:200px;overflow-y:auto">${d.usage.slice(0,10).map(u=>`
-          <div style="font-size:0.78rem;padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
-            <span>${u.model}</span>
-            <span style="color:var(--orange)">${u.cost.toFixed(4)} credits</span>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <h6 class="small text-secondary">📊 Recent Usage</h6>
+        <div class="overflow-auto" style="max-height:200px">${d.usage.slice(0,10).map(u=>`
+          <div class="d-flex justify-content-between py-1 border-bottom small">
+            <span>${u.model}</span><span class="text-warning">${u.cost.toFixed(4)} credits</span>
           </div>`).join('')||'No usage'}</div>
       </div>
-      <div>
-        <h5 style="font-size:0.8rem;color:var(--dim);margin-bottom:8px">💳 Payments</h5>
-        <div style="max-height:200px;overflow-y:auto">${d.payments.map(p=>`
-          <div style="font-size:0.78rem;padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
+      <div class="col-md-6">
+        <h6 class="small text-secondary">💳 Payments</h6>
+        <div class="overflow-auto" style="max-height:200px">${d.payments.map(p=>`
+          <div class="d-flex justify-content-between py-1 border-bottom small">
             <span>${p.plan} ¥${p.amount}</span>
-            <span style="color:${p.status==='paid'?'var(--green)':'var(--dim)'}">${p.status}</span>
+            <span class="${p.status==='paid'?'text-success':'text-secondary'}">${p.status}</span>
           </div>`).join('')||'No payments'}</div>
       </div>
     </div>`;
@@ -714,21 +647,55 @@ async function loadAdminFiles(){
   const files=await api('GET','/api/admin/generated-files?limit=100');
   $('adminFilesTable').innerHTML=files.map(f=>`<tr>
     <td>${esc(f.username)}</td><td>${esc(f.project)}</td>
-    <td>${f.file_type}</td><td style="font-size:0.82rem">${f.model}</td>
-    <td style="color:var(--orange)">${f.credits.toFixed(4)}</td>
-    <td style="font-size:0.78rem">${new Date(f.created_at+'Z').toLocaleString()}</td>
+    <td>${f.file_type}</td><td class="small">${f.model}</td>
+    <td class="text-warning">${f.credits.toFixed(4)}</td>
+    <td class="small">${new Date(f.created_at+'Z').toLocaleString()}</td>
   </tr>`).join('')||'<tr><td colspan="6">No files</td></tr>';
+}
+
+async function loadAdminRevenue(){
+  const d=await api('GET','/api/admin/revenue');
+  $('revenueStats').innerHTML=`
+    <div class="col-sm-4"><div class="card p-3 text-center"><div class="val text-warning fs-4 fw-bold">¥${d.total_revenue}</div><div class="lbl small text-secondary">总收入</div></div></div>
+    <div class="col-sm-4"><div class="card p-3 text-center"><div class="val text-warning fs-4 fw-bold">¥${d.month_revenue}</div><div class="lbl small text-secondary">本月收入</div></div></div>
+    <div class="col-sm-4"><div class="card p-3 text-center"><div class="val text-warning fs-4 fw-bold">¥${d.today_revenue}</div><div class="lbl small text-secondary">今日收入</div></div></div>`;
+
+  const maxRev=Math.max(...d.monthly.map(m=>m.revenue),1);
+  $('revenueChart').innerHTML=d.monthly.map(m=>{
+    const h=Math.max(4,m.revenue/maxRev*100);
+    return `<div class="d-flex flex-column align-items-center justify-content-end" style="flex:1;height:100%">
+      <div class="usage-bar" style="height:${h}%;width:100%;${m.revenue>0?'background:var(--bs-warning)!important':''}" title="${m.month}: ¥${m.revenue}"></div>
+      <span class="small text-secondary mt-1" style="font-size:0.6rem">${m.month.slice(2)}</span></div>`;
+  }).join('');
+
+  $('revenueByPlan').innerHTML=d.by_plan.length?d.by_plan.map(p=>`
+    <div class="d-flex justify-content-between py-1 small"><span>${p.plan}</span><span class="text-warning">¥${p.revenue} (${p.count}笔)</span></div>`).join(''):'<div class="text-secondary small">暂无数据</div>';
+
+  $('revenueByMethod').innerHTML=d.by_method.length?d.by_method.map(m=>`
+    <div class="d-flex justify-content-between py-1 small"><span>${m.method==='alipay'?'支付宝':'微信'}</span><span class="text-warning">¥${m.revenue} (${m.count}笔)</span></div>`).join(''):'<div class="text-secondary small">暂无数据</div>';
+
+  $('revenueTxTable').innerHTML=d.transactions.length?d.transactions.map(tx=>`<tr>
+    <td>${esc(tx.username)}</td><td class="small font-monospace">${tx.trade_no}</td>
+    <td class="text-warning">¥${tx.amount_cny}</td><td>${tx.plan_purchased}</td>
+    <td>${tx.payment_method==='alipay'?'支付宝':'微信'}</td>
+    <td><span class="badge ${tx.status==='paid'?'bg-success':'bg-secondary'}">${tx.status==='paid'?'已付':'待付'}</span></td>
+    <td class="small">${new Date(tx.created_at+'Z').toLocaleString()}</td>
+  </tr>`).join(''):'<tr><td colspan="7" class="text-secondary">暂无交易</td></tr>';
 }
 
 async function loadSystemTab(){
   try{const h=await api('GET','/api/admin/health');
     $('systemDetail').innerHTML=`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">
-        <div>CPU: ${h.cpu_pct}%</div><div>内存: ${h.mem_used_pct}% (${h.mem_total_gb}GB)</div>
-        <div>磁盘: ${h.disk_used_pct}%</div><div>可用: ${h.disk_free_gb}GB</div>
-        <div>运行: ${h.uptime_hours}h</div>
+      <div class="row g-2 small">
+        <div class="col-sm-4">CPU: ${h.cpu_pct}%</div><div class="col-sm-4">内存: ${h.mem_used_pct}% (${h.mem_total_gb}GB)</div>
+        <div class="col-sm-4">磁盘: ${h.disk_used_pct}%</div><div class="col-sm-4">可用: ${h.disk_free_gb}GB</div>
+        <div class="col-sm-4">运行: ${h.uptime_hours}h</div>
       </div>`;
   }catch(e){$('systemDetail').textContent='N/A'}
+  try{const s=await api('GET','/api/admin/settings');
+    if(s.welcome_message)$('setWelcome').value=s.welcome_message;
+    if(s.alipay_appid)$('setAlipayAppid').value=s.alipay_appid;
+  }catch(e){}
 }
 
 async function setUserApiKey(uid,uname){
@@ -771,13 +738,13 @@ async function loadAdminUploadedFiles(){
     const el=document.getElementById('adminUploadedFilesTable');
     if(!el)return;
     el.innerHTML=files.map(f=>`<tr>
-          <td>${esc(f.username)}</td>
-          <td style="font-size:0.85rem">${esc(f.original_name)}</td>
-          <td>${(f.size_bytes/1024).toFixed(1)}KB</td>
-          <td>${f.download_count}</td>
-          <td style="font-size:0.78rem">${new Date(f.created_at+'Z').toLocaleString()}</td>
-          <td><button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delAdminUploadedFile('${f.id}','${esc(f.original_name)}')">删除</button></td>
-        </tr>`).join('')||'<tr><td colspan="6">No files</td></tr>';
+      <td>${esc(f.username)}</td>
+      <td class="small">${esc(f.original_name)}</td>
+      <td>${(f.size_bytes/1024).toFixed(1)}KB</td>
+      <td>${f.download_count}</td>
+      <td class="small">${new Date(f.created_at+'Z').toLocaleString()}</td>
+      <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="delAdminUploadedFile('${f.id}','${esc(f.original_name)}')">删除</button></td>
+    </tr>`).join('')||'<tr><td colspan="6">No files</td></tr>';
   }catch(e){}
 }
 async function delAdminUploadedFile(fid,fname){
@@ -790,15 +757,15 @@ async function loadAdminPublicFiles(){
     const files=await api('GET','/api/admin/public-files');
     const el=document.getElementById('adminPublicFilesTable');
     if(!el)return;
-        el.innerHTML=files.map(f=>`<tr>
-          <td style="font-size:0.78rem;font-family:monospace">${f.token}</td>
-          <td style="font-size:0.85rem">${esc(f.original_name)}</td>
-          <td>${(f.size_bytes/1024).toFixed(1)}KB</td>
-          <td>${f.download_count}</td>
-          <td>${f.has_password?'<span style="color:var(--orange)">有</span>':'无'}</td>
-          <td style="font-size:0.78rem">${f.expires_at?new Date(f.expires_at+'Z').toLocaleString():'永不过期'}</td>
-          <td><button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delAdminPublicFile('${f.token}','${esc(f.original_name)}')">删除</button></td>
-        </tr>`).join('')||'<tr><td colspan="7">No public files</td></tr>';
+    el.innerHTML=files.map(f=>`<tr>
+      <td style="font-size:0.78rem;font-family:monospace">${f.token}</td>
+      <td class="small">${esc(f.original_name)}</td>
+      <td>${(f.size_bytes/1024).toFixed(1)}KB</td>
+      <td>${f.download_count}</td>
+      <td>${f.has_password?'<span class="text-warning">有</span>':'无'}</td>
+      <td class="small">${f.expires_at?new Date(f.expires_at+'Z').toLocaleString():'永不过期'}</td>
+      <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="delAdminPublicFile('${f.token}','${esc(f.original_name)}')">删除</button></td>
+    </tr>`).join('')||'<tr><td colspan="7">No public files</td></tr>';
   }catch(e){}
 }
 async function delAdminPublicFile(token,fname){
@@ -812,6 +779,10 @@ async function saveSettings(){
   const sec=$('setSecret').value.trim();if(sec)s.secret_key=sec;
   const host=$('setHost').value.trim();if(host)s.git_host=host;
   const plans=$('setPlans').value.trim();if(plans)s.pricing_plans=plans;
+  const welcome=$('setWelcome').value.trim();if(welcome)s.welcome_message=welcome;
+  const alipayAppid=$('setAlipayAppid').value.trim();if(alipayAppid)s.alipay_appid=alipayAppid;
+  const alipayPriv=$('setAlipayPrivateKey').value.trim();if(alipayPriv)s.alipay_private_key=alipayPriv;
+  const alipayPub=$('setAlipayPublicKey').value.trim();if(alipayPub)s.alipay_public_key=alipayPub;
   try{await api('PUT','/api/admin/settings',s);showToast(t('settings_saved'))}catch(e){showToast(e.message,true)}
 }
 async function reloadSettings(){await api('GET','/api/admin/settings/reload');showToast(t('settings_saved'))}
@@ -819,17 +790,19 @@ async function reloadSettings(){await api('GET','/api/admin/settings/reload');sh
 // ── Billing ──────────────────────────────────────────
 let selectedPlan='pro';
 async function openBilling(){
-  $('billingModal').classList.add('show');$('paymentQR').style.display='none';
+  const modal=new bootstrap.Modal($('billingModal'));
+  modal.show();
+  $('paymentQR').classList.add('d-none');
   const plans=await api('GET','/api/billing/plans');
-  $('planGrid').innerHTML=plans.map((p,i)=>`<div class="plan-card${i===1?' selected':''}" onclick="selectPlan('${p.key}',this)"><div class="name">${p.name}</div><div class="price">¥${p.price_cny}</div><div class="detail">${p.credits} credits<br>${p.max_projects} projects</div></div>`).join('');
+  $('planGrid').innerHTML=plans.map((p,i)=>`<div class="card plan-card${i===1?' selected':''}" onclick="selectPlan('${p.key}',this)"><div class="name">${p.name}</div><div class="price">¥${p.price_cny}</div><div class="detail">${p.credits} credits<br>${p.max_projects} projects</div></div>`).join('');
   selectedPlan='pro';
 }
-function closeBilling(){$('billingModal').classList.remove('show');$('paymentQR').style.display='none'}
+function closeBilling(){bootstrap.Modal.getInstance($('billingModal')).hide();$('paymentQR').classList.add('d-none')}
 function selectPlan(key,el){document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');selectedPlan=key}
 async function initiatePayment(){
   const method=document.querySelector('input[name="payMethod"]:checked').value;
   const payment=await api('POST','/api/billing/pay',{plan_key:selectedPlan,method});
-  state.currentPayment=payment;$('paymentQR').style.display='block';
+  state.currentPayment=payment;$('paymentQR').classList.remove('d-none');
   $('qrPlaceholder').innerHTML=`${method.toUpperCase()} Pay<br>¥${payment.amount_cny}<br>${payment.trade_no}`;
 }
 async function confirmPayment(){
@@ -843,14 +816,15 @@ async function confirmPayment(){
 async function loadUserFiles(){
   try{
     const data=await api('GET','/api/files');
-    $('storageText').textContent=(data.storage_used/1024/1024).toFixed(1)+' / 20 MB';
+    $('storageText').textContent=(data.storage_used/1024/1024).toFixed(1)+' / '+(data.storage_limit/1024/1024).toFixed(0)+' MB';
     $('storagePct').textContent=data.storage_pct+'%';
     $('storageFill').style.width=data.storage_pct+'%';
-    if(data.storage_pct>80)$('storageFill').style.background='var(--orange)';
-    if(data.storage_pct>95)$('storageFill').style.background='var(--red)';
+    if(data.storage_pct>80)$('storageFill').classList.replace('bg-success','bg-warning');
+    else $('storageFill').classList.replace('bg-warning','bg-success');
+    if(data.storage_pct>95)$('storageFill').classList.replace('bg-warning','bg-danger');
 
     const el=$('userFilesList');
-    if(!data.files.length){el.innerHTML='<p style="text-align:center;padding:16px;color:var(--dim)">暂无文件</p>';return}
+    if(!data.files.length){el.innerHTML='<p class="text-center py-3 text-secondary">暂无文件</p>';return}
     el.innerHTML=data.files.map(f=>`
       <div class="file-item">
         <div class="finfo">
@@ -880,7 +854,7 @@ async function shareUserFile(fid){
   try{
     const link=await api('POST',`/api/files/${fid}/share?expires_hours=48`);
     const box=$('shareBox_'+fid);
-    box.innerHTML='🔗 <a href="'+link.url+'" target="_blank" style="color:var(--accent)">'+link.url+'</a>';
+    box.innerHTML='🔗 <a href="'+link.url+'" target="_blank">'+link.url+'</a>';
     box.style.display='block';
   }catch(e){showToast(e.message,true)}
 }
@@ -931,10 +905,24 @@ async function downloadFile(fileId){
 // ── Helpers ──────────────────────────────────────────
 function $(id){return document.getElementById(id)}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-function showToast(msg,isErr){const t=$('toast');t.textContent=msg;t.className='toast'+(isErr?' error':'');t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
+function showToast(msg,isErr){
+  const t=$('toast');t.textContent=msg;
+  t.classList.remove('alert-success','alert-danger');
+  t.classList.add(isErr?'alert-danger':'alert-success');
+  t.style.display='block';
+  setTimeout(()=>t.style.display='none',3000);
+}
+
+async function loadWelcome(){
+  try{const s=await fetch('/api/settings/public').then(r=>r.json());
+    if(s.welcome_message)$('heroSub').textContent=s.welcome_message;
+    if(s.site_name)document.querySelector('#landingPage h1').textContent=s.site_name;
+  }catch(e){}
+}
 
 // Init session restore
-(function(){
+(async function(){
+  loadWelcome();
   const tok=localStorage.getItem('ai_platform_token');
   if(tok){state.token=tok;api('GET','/api/auth/me').then(d=>{setAuth({access_token:tok,user:d});enterApp()}).catch(()=>localStorage.removeItem('ai_platform_token'))}
   toggleLang();
