@@ -384,14 +384,16 @@ const I18N = {
 };
 let lang = localStorage.getItem('ai_platform_lang')||'zh';
 function t(k){return(I18N[lang]&&I18N[lang][k])||(I18N['en'][k])||k}
-function toggleLang(){
-  lang=lang==='zh'?'en':'zh';localStorage.setItem('ai_platform_lang',lang);
+function applyLang(){
   document.querySelectorAll('[key]').forEach(el=>{const k=el.getAttribute('key');if(I18N[lang][k])el.textContent=I18N[lang][k]});
   document.querySelectorAll('#langBtn0,#langBtn1').forEach(b=>b.textContent=lang==='zh'?'EN':'中文');
   document.documentElement.lang=lang==='zh'?'zh-CN':'en';
-  document.getElementById('chatInput').placeholder=t('chat_hint');
+  const ci=document.getElementById('chatInput');if(ci)ci.placeholder=t('chat_hint');
 }
-setTimeout(()=>{document.querySelectorAll('#langBtn0,#langBtn1').forEach(b=>b.textContent=lang==='zh'?'EN':'中文');document.documentElement.lang=lang==='zh'?'zh-CN':'en'},0);
+function toggleLang(){
+  lang=lang==='zh'?'en':'zh';localStorage.setItem('ai_platform_lang',lang);
+  applyLang();
+}
 
 // ── State ────────────────────────────────────────────
 let state={token:null,user:null,projects:[],activeProject:null,files:[],activeFile:null,currentPayment:null,selectedModel:'deepseek-chat',selectedFileType:'code'};
@@ -428,7 +430,7 @@ async function enterApp(){
   $('creditsDisplay').textContent=Math.round(state.user.credits)+' credits';
   if(state.user.is_admin)$('adminBtn').style.display='inline-flex';
   try{const models=await api('GET','/api/models');populateModels(models)}catch(e){}
-  toggleLang();
+  applyLang();
   await refreshProjects();
   if(state.projects.length>0)selectProject(state.projects[0].id);
   if(state.user.is_admin && location.hash==='#admin')openAdmin();
@@ -545,7 +547,7 @@ function openAdmin(){
     $('setPlans').value=settings.pricing_plans||JSON.stringify({"free":{"name":"Free","price_cny":0,"credits":100,"max_projects":3,"model_tier":"free"},"pro":{"name":"Pro","price_cny":49,"credits":5000,"max_projects":20,"model_tier":"paid"},"enterprise":{"name":"Enterprise","price_cny":199,"credits":50000,"max_projects":999,"model_tier":"paid"}},null,2);
   });
   adminTab('dashboard');
-  toggleLang();
+  applyLang();
 }
 
 function closeAdmin(){bootstrap.Modal.getInstance($('adminModal')).hide();$('userDetailPanel').classList.add('d-none')}
@@ -926,7 +928,7 @@ async function loadWelcome(){
   loadWelcome();
   const tok=localStorage.getItem('ai_platform_token');
   if(tok){state.token=tok;api('GET','/api/auth/me').then(d=>{setAuth({access_token:tok,user:d});enterApp()}).catch(()=>localStorage.removeItem('ai_platform_token'))}
-  toggleLang();
+  applyLang();
   if(location.hash==='#admin'&&!state.token)location.replace('/'); // redirect to login if not authed
 })();
 </script>
