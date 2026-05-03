@@ -431,6 +431,7 @@ async function enterApp(){
   toggleLang();
   await refreshProjects();
   if(state.projects.length>0)selectProject(state.projects[0].id);
+  if(state.user.is_admin && location.hash==='#admin')openAdmin();
 }
 
 function populateModels(models){
@@ -926,6 +927,7 @@ async function loadWelcome(){
   const tok=localStorage.getItem('ai_platform_token');
   if(tok){state.token=tok;api('GET','/api/auth/me').then(d=>{setAuth({access_token:tok,user:d});enterApp()}).catch(()=>localStorage.removeItem('ai_platform_token'))}
   toggleLang();
+  if(location.hash==='#admin'&&!state.token)location.replace('/'); // redirect to login if not authed
 })();
 </script>
 </body>
