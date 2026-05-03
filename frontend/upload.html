@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Share — gristai.top</title>
+<style>
+  :root {
+    --bg:#0d1117; --surface:#161b22; --surface2:#1c2333; --border:#30363d; --text:#e6edf3;
+    --dim:#8b949e; --accent:#58a6ff; --green:#2ea043; --red:#f85149;
+    --radius:12px; --font:'Google Sans','PingFang SC','Microsoft YaHei',-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font:16px/1.6 var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px 32px;width:440px;max-width:95vw;box-shadow:0 4px 24px rgba(0,0,0,.4)}
+  .card h2{color:var(--accent);font-size:1.4rem;margin-bottom:4px}
+  .card .sub{color:var(--dim);font-size:0.9rem;margin-bottom:24px}
+
+  .dropzone{border:2px dashed var(--border);border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:20px}
+  .dropzone:hover,.dropzone.dragover{border-color:var(--accent);background:var(--surface2)}
+  .dropzone .icon{font-size:2.5rem;margin-bottom:8px}
+  .dropzone p{color:var(--dim);font-size:0.9rem}
+  .dropzone .link{color:var(--accent);text-decoration:underline}
+
+  .file-info{display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px}
+  .file-info .fname{font-size:0.9rem;color:var(--text);word-break:break-all}
+  .file-info .fsize{font-size:0.8rem;color:var(--dim)}
+
+  .progress{height:6px;background:var(--border);border-radius:3px;margin:12px 0;overflow:hidden;display:none}
+  .progress .bar{height:100%;background:var(--accent);border-radius:3px;transition:width .2s;width:0}
+
+  .result{display:none;background:var(--bg);border:1px solid var(--green);border-radius:8px;padding:16px;margin-top:12px}
+  .result .label{font-size:0.8rem;color:var(--dim);margin-bottom:4px}
+  .result .url-box{display:flex;align-items:center;gap:8px}
+  .result input{flex:1;height:40px;padding:0 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--green);font-size:0.85rem;font-family:monospace;outline:none}
+  .result button{height:40px;padding:0 16px;border-radius:6px;font-size:0.85rem;cursor:pointer;font-weight:600;border:none;white-space:nowrap}
+  .btn-copy{background:var(--accent);color:#fff}
+  .btn-copy:hover{filter:brightness(1.12)}
+
+  .error{display:none;color:var(--red);font-size:0.85rem;margin-top:8px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--red)}
+
+  .footer{text-align:center;margin-top:20px;font-size:0.8rem;color:var(--dim)}
+  .footer a{color:var(--dim)}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>📎 分享文件</h2>
+  <p class="sub">上传文件，获取分享链接 · 有效期7天 · 最大 100MB</p>
+
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📤</div>
+    <p>点击选择文件 或拖拽文件到此处</p>
+  </div>
+
+  <input type="file" id="fileInput" style="display:none" onchange="handleFile(this.files[0])">
+
+  <div class="file-info" id="fileInfo">
+    <div class="fname" id="fileName"></div>
+    <div class="fsize" id="fileSize"></div>
+  </div>
+
+  <div class="progress" id="progress"><div class="bar" id="progressBar"></div></div>
+
+  <div class="error" id="error"></div>
+
+  <div class="result" id="result">
+    <div class="label">✅ 上传成功！复制链接分享：</div>
+    <div class="url-box">
+      <input id="linkInput" readonly onclick="this.select()">
+      <button class="btn-copy" onclick="copyLink()">复制</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Powered by <a href="/">gristai.top</a>
+</div>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover') });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+async function handleFile(file) {
+  if (!file) return;
+  if (file.size > 100 * 1024 * 1024) {
+    showError('文件过大（最大 100MB）');
+    return;
+  }
+
+  document.getElementById('fileInfo').style.display = 'block';
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = formatSize(file.size);
+  document.getElementById('progress').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('error').style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  const xhr = new XMLHttpRequest();
+  xhr.upload.addEventListener('progress', e => {
+    if (e.lengthComputable) {
+      document.getElementById('progressBar').style.width = (e.loaded / e.total * 100) + '%';
+    }
+  });
+
+  xhr.addEventListener('load', () => {
+    document.getElementById('progress').style.display = 'none';
+    try {
+      const data = JSON.parse(xhr.responseText);
+      if (xhr.status === 200 && data.url) {
+        document.getElementById('linkInput').value = data.url;
+        document.getElementById('result').style.display = 'block';
+      } else {
+        showError(data.detail || 'Upload failed');
+      }
+    } catch (e) {
+      showError('Upload failed');
+    }
+  });
+
+  xhr.addEventListener('error', () => showError('Network error'));
+  xhr.open('POST', '/api/public/upload');
+  xhr.send(fd);
+}
+
+function copyLink() {
+  const input = document.getElementById('linkInput');
+  input.select();
+  document.execCommand('copy');
+  const btn = document.querySelector('.btn-copy');
+  btn.textContent = '已复制!';
+  setTimeout(() => btn.textContent = '复制', 1500);
+}
+
+function showError(msg) {
+  const el = document.getElementById('error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('progress').style.display = 'none';
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+</script>
+</body>
+</html>

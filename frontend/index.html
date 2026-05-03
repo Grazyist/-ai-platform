@@ -28,7 +28,12 @@
   .feature-card h3{font-size:1.15rem;font-weight:600;margin-bottom:8px;color:var(--text)}
   .feature-card p{font-size:0.95rem;color:var(--dim);line-height:1.5}
   .auth-wrapper{display:flex;justify-content:center;width:100%}
-  .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px 32px;width:420px;max-width:95vw;box-shadow:var(--elevation)}
+  .auth-tabs{display:flex;gap:0;margin-bottom:-1px;position:relative;z-index:1}
+  .auth-tab{flex:1;height:48px;background:var(--surface2);border:1px solid var(--border);border-bottom:none;color:var(--dim);font-size:1rem;font-weight:500;cursor:pointer;transition:.15s;border-radius:10px 10px 0 0}
+  .auth-tab.active{background:var(--surface);color:var(--accent);font-weight:600;border-color:var(--border)}
+  .auth-tab:first-child{border-right:none;border-radius:10px 0 0 0}
+  .auth-tab:last-child{border-radius:0 10px 0 0}
+  .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:0 0 12px 12px;padding:40px 32px;width:420px;max-width:95vw;box-shadow:var(--elevation)}
   .auth-card h2{font-size:1.6rem;font-weight:600;color:var(--accent);margin-bottom:4px}
   .auth-card .sub{color:var(--dim);margin-bottom:24px;font-size:0.95rem}
 
@@ -134,6 +139,14 @@
   .toast{position:fixed;top:20px;right:20px;background:var(--green);color:#fff;padding:14px 22px;border-radius:10px;z-index:300;font-size:0.95rem;display:none;box-shadow:var(--elevation)}
   .toast.error{background:var(--red)}
 
+  .file-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;margin-bottom:4px;background:var(--bg);border:1px solid var(--border);gap:8px}
+  .file-item .finfo{flex:1;min-width:0}
+  .file-item .fname{font-size:0.85rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .file-item .fmeta{font-size:0.72rem;color:var(--dim)}
+  .file-item .fbtn{font-size:0.75rem;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--dim);white-space:nowrap}
+  .file-item .fbtn:hover{color:var(--accent);border-color:var(--accent)}
+  .share-link-box{padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:0.78rem;font-family:monospace;word-break:break-all;margin-top:6px;display:none;color:var(--green)}
+
   .lang-btn{font-size:0.85rem;cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--dim);font-weight:500}
   .lang-btn:hover{color:var(--text);border-color:var(--dim)}
 </style>
@@ -147,33 +160,31 @@
     <h1>AI Platform</h1>
     <p key="hero_sub">用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发</p>
   </div>
-  <div class="cta">
-    <button class="btn btn-accent" style="width:auto;font-size:1rem;height:48px" onclick="showLogin()" key="sign_in">登录</button>
-    <button class="btn btn-outline" style="width:auto;font-size:1rem;height:48px" onclick="showRegister()" key="get_started">免费注册</button>
-  </div>
   <div class="feature-grid">
     <div class="feature-card"><div class="icon">🤖</div><h3 key="feat_ai">AI 编程</h3><p key="feat_ai_desc">与 AI 对话生成代码，支持 Python/JS/HTML/PPT/Word/PDF</p></div>
     <div class="feature-card"><div class="icon">📦</div><h3 key="feat_dl">下载分享</h3><p key="feat_dl_desc">项目打包下载，生成分享链接，一键导出</p></div>
     <div class="feature-card"><div class="icon">💻</div><h3 key="feat_ssh">SSH 远程</h3><p key="feat_ssh_desc">独立 SSH 账号，任意终端 clone/push/edit</p></div>
   </div>
-  <div class="auth-wrapper">
+  <div style="width:420px;max-width:95vw">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')" id="tabLogin" key="sign_in_title">登录</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')" id="tabRegister" key="reg_title">注册</button>
+    </div>
     <div class="auth-card" id="loginCard">
-      <h2 key="sign_in_title">登录</h2><p class="sub" key="welcome">欢迎回来</p>
-      <div class="form-group"><label key="username">用户名</label><input id="loginUser" placeholder="username"></div>
-      <div class="form-group"><label key="password">密码</label><input id="loginPass" type="password" placeholder="password"></div>
-      <div class="error-msg" id="loginErr"></div>
-      <button class="btn btn-primary" onclick="doLogin()" style="margin-top:8px" key="sign_in_btn">登录</button>
-      <p class="link-row"><span key="no_account">没有账号？</span> <a href="#" onclick="showRegister()" key="reg_link">注册</a></p>
-    </div>
-    <div class="auth-card" id="registerCard" style="display:none">
-      <h2 key="reg_title">创建账号</h2><p class="sub" key="reg_sub">开始用 AI 构建项目</p>
-      <div class="form-group"><label key="username">用户名</label><input id="regUser" placeholder="username"></div>
-      <div class="form-group"><label key="email">邮箱</label><input id="regEmail" placeholder="email@example.com"></div>
-      <div class="form-group"><label key="password">密码</label><input id="regPass" type="password" placeholder="min 6 chars"></div>
-      <div class="error-msg" id="regErr"></div>
-      <button class="btn btn-primary" onclick="doRegister()" style="margin-top:8px" key="reg_btn">注册</button>
-      <p class="link-row"><span key="have_account">已有账号？</span> <a href="#" onclick="showLogin()" key="login_link">登录</a></p>
-    </div>
+    <h2 key="sign_in_title">登录</h2><p class="sub" key="welcome">欢迎回来</p>
+    <div class="form-group"><label key="username">用户名</label><input id="loginUser" placeholder="username"></div>
+    <div class="form-group"><label key="password">密码</label><input id="loginPass" type="password" placeholder="password"></div>
+    <div class="error-msg" id="loginErr"></div>
+    <button class="btn btn-primary" onclick="doLogin()" style="margin-top:8px" key="sign_in_btn">登录</button>
+  </div>
+  <div class="auth-card" id="registerCard" style="display:none">
+    <h2 key="reg_title">创建账号</h2><p class="sub" key="reg_sub">开始用 AI 构建项目</p>
+    <div class="form-group"><label key="username">用户名</label><input id="regUser" placeholder="username"></div>
+    <div class="form-group"><label key="email">邮箱</label><input id="regEmail" placeholder="email@example.com"></div>
+    <div class="form-group"><label key="password">密码</label><input id="regPass" type="password" placeholder="min 6 chars"></div>
+    <div class="error-msg" id="regErr"></div>
+    <button class="btn btn-primary" onclick="doRegister()" style="margin-top:8px" key="reg_btn">注册</button>
+  </div>
   </div>
   <p style="margin-top:24px;color:var(--dim);font-size:0.85rem" key="footer_info">gristai.top | 免费 100 credits · 3项目 | Pro ¥49/月</p>
 </div>
@@ -230,6 +241,7 @@
     <div style="display:flex;gap:8px;margin-bottom:16px">
       <button class="btn btn-sm btn-outline" style="flex:1" onclick="showRightTab('preview')" key="preview">预览</button>
       <button class="btn btn-sm btn-outline" style="flex:1" onclick="showRightTab('info')" key="info_tab">信息</button>
+      <button class="btn btn-sm btn-outline" style="flex:1" onclick="showRightTab('files')" key="my_files">文件</button>
     </div>
     <div id="rightPreview">
       <h3 key="latest_file">最新文件</h3>
@@ -243,6 +255,20 @@
     <div id="rightInfo" style="display:none">
       <h3 key="project_info">项目信息</h3><div id="projectInfo" style="margin-bottom:16px"></div>
       <h3 key="ssh_access">SSH 访问</h3><div class="code-preview" id="sshInfo">Loading...</div>
+    </div>
+    <div id="rightFiles" style="display:none">
+      <h3 key="my_files">我的文件</h3>
+      <div id="storageBar" style="margin-bottom:16px;background:var(--bg);border-radius:8px;padding:10px 14px">
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--dim);margin-bottom:6px">
+          <span id="storageText">0 / 20 MB</span><span id="storagePct">0%</span>
+        </div>
+        <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+          <div id="storageFill" style="height:100%;background:var(--green);border-radius:3px;width:0%;transition:width .3s"></div>
+        </div>
+      </div>
+      <input type="file" id="fileUploadInput" style="display:none" onchange="uploadFile()" multiple>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="$('fileUploadInput').click()" key="upload_file">+ 上传文件</button>
+      <div id="userFilesList" style="font-size:0.85rem;color:var(--dim)">暂无文件</div>
     </div>
   </div>
 </div>
@@ -326,6 +352,7 @@ const I18N = {
     ai:'AI',you:'你',
     tier_free:'免费模型',tier_paid:'付费模型',
     code:'💻 代码',html:'🌐 网页',ppt:'📊 PPT',doc:'📄 文档',
+    my_files:'我的文件',upload_file:'+ 上传文件',
   },
   en: {
     hero_sub:'Chat with AI to build projects · Download · SSH Dev',
@@ -356,6 +383,7 @@ const I18N = {
     ai:'AI',you:'You',
     tier_free:'Free Models',tier_paid:'Paid Models',
     code:'💻 Code',html:'🌐 Web',ppt:'📊 PPT',doc:'📄 Document',
+    my_files:'My Files',upload_file:'+ Upload File',
   }
 };
 let lang = localStorage.getItem('ai_platform_lang')||'zh';
@@ -382,8 +410,10 @@ async function api(method,path,body){
 }
 
 // ── Auth ──────────────────────────────────────────────
-function showRegister(){$('loginCard').style.display='none';$('registerCard').style.display='block'}
-function showLogin(){$('registerCard').style.display='none';$('loginCard').style.display='block'}
+function switchAuthTab(tab){
+  if(tab==='login'){$('loginCard').style.display='block';$('registerCard').style.display='none';$('tabLogin').classList.add('active');$('tabRegister').classList.remove('active')}
+  else{$('loginCard').style.display='none';$('registerCard').style.display='block';$('tabRegister').classList.add('active');$('tabLogin').classList.remove('active')}
+}
 async function doLogin(){try{const d=await api('POST','/api/auth/login',{username:$('loginUser').value,password:$('loginPass').value});setAuth(d);enterApp()}catch(e){showErr('loginErr',e.message)}}
 async function doRegister(){try{const d=await api('POST','/api/auth/register',{username:$('regUser').value,email:$('regEmail').value,password:$('regPass').value});setAuth(d);enterApp()}catch(e){showErr('regErr',e.message)}}
 function setAuth(d){state.token=d.access_token;state.user=d.user;if(d.access_token)localStorage.setItem('ai_platform_token',d.access_token)}
@@ -434,7 +464,7 @@ async function selectProject(id){
 async function downloadProject(){if(!state.activeProject)return;window.open(API+`/api/projects/${state.activeProject}/download?token=`+state.token,'_blank')}
 async function shareProject(){
   if(!state.activeProject)return;const link=await api('POST',`/api/projects/${state.activeProject}/share?expires_hours=48`);
-  $('shareResult').innerHTML=`<p style="color:var(--green)">Share:</p><code>${API}${link.url}</code>`;
+  $('shareResult').innerHTML=`<p style="color:var(--green)">Share:</p><code>${link.url}</code>`;
 }
 
 // ── Files ────────────────────────────────────────────
@@ -463,7 +493,13 @@ function addMsg(role,content){const el=$('chatMessages');if(el.querySelector('.e
 function renderChat(){$('chatMessages').innerHTML='<div class="empty-state">'+t('chat_hint')+'</div>'}
 
 // ── Right Panel ──────────────────────────────────────
-function showRightTab(tab){$('rightPreview').style.display=tab==='preview'?'block':'none';$('rightInfo').style.display=tab==='info'?'block':'none';if(tab==='info')loadSSH()}
+function showRightTab(tab){
+  $('rightPreview').style.display=tab==='preview'?'block':'none';
+  $('rightInfo').style.display=tab==='info'?'block':'none';
+  $('rightFiles').style.display=tab==='files'?'block':'none';
+  if(tab==='info')loadSSH();
+  if(tab==='files')loadUserFiles();
+}
 function renderProjectInfo(p){if(!p)return;$('projectInfo').innerHTML=`<p style="font-size:0.95rem;font-weight:600">${esc(p.name)}</p><p style="font-size:0.85rem;color:var(--dim)">${p.file_count} files · ${new Date(p.updated_at).toLocaleString()}</p>`}
 async function loadSSH(){try{const i=await api('GET','/api/ssh/info');$('sshInfo').textContent=i.command+'\n\nProjects in ~/projects/'}catch(e){$('sshInfo').textContent='Login required'}}
 
@@ -546,6 +582,57 @@ async function confirmPayment(){
   const result=await api('POST',`/api/billing/confirm/${state.currentPayment.trade_no}`);
   $('planBadge').textContent=result.plan;$('creditsDisplay').textContent=Math.round(result.credits)+' credits';
   state.user.plan=result.plan;state.user.credits=result.credits;closeBilling();showToast(t('payment_ok'));
+}
+
+// ── File Upload ───────────────────────────────────────
+async function loadUserFiles(){
+  try{
+    const data=await api('GET','/api/files');
+    $('storageText').textContent=(data.storage_used/1024/1024).toFixed(1)+' / 20 MB';
+    $('storagePct').textContent=data.storage_pct+'%';
+    $('storageFill').style.width=data.storage_pct+'%';
+    if(data.storage_pct>80)$('storageFill').style.background='var(--orange)';
+    if(data.storage_pct>95)$('storageFill').style.background='var(--red)';
+
+    const el=$('userFilesList');
+    if(!data.files.length){el.innerHTML='<p style="text-align:center;padding:16px;color:var(--dim)">暂无文件</p>';return}
+    el.innerHTML=data.files.map(f=>`
+      <div class="file-item">
+        <div class="finfo">
+          <div class="fname">${esc(f.original_name)}</div>
+          <div class="fmeta">${(f.size_bytes/1024).toFixed(1)}KB · ${f.download_count}dls</div>
+          <div class="share-link-box" id="shareBox_${f.id}"></div>
+        </div>
+        <button class="fbtn" onclick="shareUserFile('${f.id}')" title="生成分享链接">🔗</button>
+        <button class="fbtn" onclick="delUserFile('${f.id}')" title="删除">✕</button>
+      </div>`).join('');
+  }catch(e){}
+}
+
+async function uploadFile(){
+  const file=$('fileUploadInput').files[0];
+  if(!file)return;
+  if(file.size>20*1024*1024){showToast('File too large (max 20MB)',true);return}
+  const fd=new FormData();fd.append('file',file);
+  try{
+    const r=await fetch(API+'/api/files/upload',{method:'POST',headers:{'Authorization':'Bearer '+state.token},body:fd});
+    if(!r.ok){const d=await r.json();throw new Error(d.detail||'Upload failed')}
+    showToast('Uploaded: '+file.name);loadUserFiles();
+  }catch(e){showToast(e.message,true)}
+}
+
+async function shareUserFile(fid){
+  try{
+    const link=await api('POST',`/api/files/${fid}/share?expires_hours=48`);
+    const box=$('shareBox_'+fid);
+    box.innerHTML='🔗 <a href="'+link.url+'" target="_blank" style="color:var(--accent)">'+link.url+'</a>';
+    box.style.display='block';
+  }catch(e){showToast(e.message,true)}
+}
+
+async function delUserFile(fid){
+  if(!confirm('Delete this file?'))return;
+  try{await api('DELETE','/api/files/'+fid);showToast('Deleted');loadUserFiles()}catch(e){showToast(e.message,true)}
 }
 
 // ── Helpers ──────────────────────────────────────────

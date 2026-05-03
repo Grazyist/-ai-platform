@@ -43,3 +43,5 @@ PLANS = {
 
 SSH_BASE_DIR = "/home"
 PROJECTS_DIR = "/home/{username}/projects"
+UPLOAD_DIR = "/home/{username}/uploads"
+MAX_STORAGE_BYTES = 20 * 1024 * 1024  # 20MB per user

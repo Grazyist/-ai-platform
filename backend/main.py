@@ -3,22 +3,24 @@ import shutil
 import tarfile
 import io
 import os
+import re
+import asyncio
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from database import init_db, get_db, async_session
-from models import User, Project, ProjectFile, ApiUsage, Payment, ShareLink, SystemSetting, GeneratedFile
+from models import User, Project, ProjectFile, ApiUsage, Payment, ShareLink, SystemSetting, GeneratedFile, UserFile, FileShareLink, PublicFile, gen_id
 from schemas import *
 from auth import hash_password, verify_password, create_token, get_current_user, get_admin
 from ai_proxy import ai_proxy
-from config import PLANS, MODELS, FILE_TYPES, SSH_BASE_DIR, PROJECTS_DIR
+from config import PLANS, MODELS, FILE_TYPES, SSH_BASE_DIR, PROJECTS_DIR, UPLOAD_DIR, MAX_STORAGE_BYTES
 
 app = FastAPI(title="AI Platform", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -52,7 +54,7 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
     if existing.scalar_one_or_none():
         raise HTTPException(400, "Username or email already exists")
 
-    # First registered user becomes admin
+    # First registered user becomes admin with full privileges
     user_count = (await db.execute(select(func.count(User.id)))).scalar()
     is_first = user_count == 0
 
@@ -65,7 +67,10 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
         hashed_password=hash_password(data.password),
         ssh_username=ssh_user,
         ssh_port=ssh_port,
-        is_admin=is_first
+        is_admin=is_first,
+        plan="enterprise" if is_first else "free",
+        credits=999999 if is_first else 100.0,
+        model_tier="paid" if is_first else "free"
     )
     db.add(user)
     await db.commit()
@@ -196,7 +201,7 @@ async def delete_file(project_id: str, data: FileDelete, user: User = Depends(ge
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(data: ChatRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    await _get_user_project(data.project_id, user, db)
+    project = await _get_user_project(data.project_id, user, db)
     msgs = [{"role": m.role, "content": m.content} for m in data.messages]
     try:
         result = await ai_proxy.chat(db, user, data.project_id, msgs, data.model, data.file_type)
@@ -204,6 +209,12 @@ async def chat(data: ChatRequest, user: User = Depends(get_current_user), db: As
         raise HTTPException(402, str(e))
     except RuntimeError as e:
         raise HTTPException(502, str(e))
+
+    # Parse and save files from AI response, auto-build document types
+    built_files = await _parse_and_save_files(project, user, result["reply"], data.file_type, db)
+    if built_files:
+        result["reply"] += "\n\n" + built_files
+
     return ChatResponse(**result)
 
 
@@ -290,7 +301,7 @@ async def create_share(project_id: str, expires_hours: int = 24, user: User = De
     )
     db.add(link)
     await db.commit()
-    return ShareLinkOut(token=token, url=f"/dl/{token}", download_count=0, expires_at=link.expires_at)
+    return ShareLinkOut(token=token, url=f"{_base_url()}/dl/{token}", download_count=0, expires_at=link.expires_at)
 
 
 @app.get("/dl/{token}")
@@ -321,13 +332,215 @@ async def download_project(project_id: str, user: User = Depends(get_current_use
 
 @app.get("/api/ssh/info")
 async def ssh_info(user: User = Depends(get_current_user)):
+    host = os.environ.get("GIT_HOST", "gristai.top")
     return {
-        "host": os.environ.get("GIT_HOST", "139.180.220.20"),
+        "host": host,
         "username": user.ssh_username,
         "port": user.ssh_port or 22,
-        "command": f"ssh {user.ssh_username}@139.180.220.20 -p {user.ssh_port or 22}",
+        "command": f"ssh {user.ssh_username}@{host} -p {user.ssh_port or 22}",
         "note": "Use your platform password to login. Your projects are in ~/projects/"
     }
+
+
+# ── File Upload & Share ────────────────────────────────
+
+@app.get("/api/files", response_model=dict)
+async def list_user_files(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(UserFile).where(UserFile.user_id == user.id).order_by(UserFile.created_at.desc())
+    )
+    files = result.scalars().all()
+    total_bytes = sum(f.size_bytes for f in files)
+    return {
+        "files": [
+            {
+                "id": f.id, "filename": f.filename, "original_name": f.original_name,
+                "size_bytes": f.size_bytes, "download_count": f.download_count,
+                "created_at": f.created_at
+            }
+            for f in files
+        ],
+        "storage_used": total_bytes,
+        "storage_limit": MAX_STORAGE_BYTES,
+        "storage_pct": round(total_bytes / MAX_STORAGE_BYTES * 100, 1)
+    }
+
+
+@app.post("/api/files/upload")
+async def upload_file(file: UploadFile, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    # Check storage quota
+    result = await db.execute(
+        select(func.sum(UserFile.size_bytes)).where(UserFile.user_id == user.id)
+    )
+    used = result.scalar() or 0
+    # Read file content (FastAPI's UploadFile)
+    content = await file.read()
+    file_size = len(content)
+    if used + file_size > MAX_STORAGE_BYTES:
+        raise HTTPException(400, f"Storage limit reached: {used//1024}KB used of {MAX_STORAGE_BYTES//1024//1024}MB")
+
+    upload_dir = Path(UPLOAD_DIR.format(username=user.ssh_username))
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    file_id = gen_id()
+    stored_name = f"{file_id}_{file.filename}"
+    disk_path = upload_dir / stored_name
+    disk_path.write_bytes(content)
+
+    uf = UserFile(
+        id=file_id, user_id=user.id, filename=stored_name,
+        original_name=file.filename, size_bytes=file_size
+    )
+    db.add(uf)
+    await db.commit()
+    await db.refresh(uf)
+    return {"ok": True, "id": file_id, "size_bytes": file_size}
+
+
+@app.delete("/api/files/{file_id}")
+async def delete_user_file(file_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(UserFile).where(UserFile.id == file_id, UserFile.user_id == user.id)
+    )
+    uf = result.scalar_one_or_none()
+    if not uf:
+        raise HTTPException(404, "File not found")
+
+    # Delete share links for this file
+    links = await db.execute(select(FileShareLink).where(FileShareLink.file_id == file_id))
+    for link in links.scalars().all():
+        await db.delete(link)
+
+    await db.delete(uf)
+    upload_dir = Path(UPLOAD_DIR.format(username=user.ssh_username))
+    (upload_dir / uf.filename).unlink(missing_ok=True)
+    await db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/files/{file_id}/share", response_model=FileShareOut)
+async def share_user_file(file_id: str, expires_hours: int = 48, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(UserFile).where(UserFile.id == file_id, UserFile.user_id == user.id)
+    )
+    uf = result.scalar_one_or_none()
+    if not uf:
+        raise HTTPException(404, "File not found")
+
+    token = uuid.uuid4().hex[:16]
+    link = FileShareLink(
+        file_id=file_id, token=token,
+        expires_at=datetime.utcnow() + timedelta(hours=expires_hours)
+    )
+    db.add(link)
+    await db.commit()
+    return FileShareOut(token=token, url=f"{_base_url()}/dl/file/{token}", download_count=0, expires_at=link.expires_at)
+
+
+@app.get("/api/files/shares", response_model=list[FileShareOut])
+async def list_file_shares(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    # Get all share links for this user's files
+    result = await db.execute(
+        select(FileShareLink).join(UserFile).where(UserFile.user_id == user.id)
+        .order_by(FileShareLink.created_at.desc())
+    )
+    links = result.scalars().all()
+    out = []
+    for link in links:
+        file_result = await db.execute(select(UserFile).where(UserFile.id == link.file_id))
+        uf = file_result.scalar_one_or_none()
+        out.append(FileShareOut(
+            token=link.token, url=f"{_base_url()}/dl/file/{link.token}",
+            download_count=link.download_count, expires_at=link.expires_at
+        ))
+    return out
+
+
+@app.get("/dl/file/{token}")
+async def download_shared_file(token: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(FileShareLink).where(FileShareLink.token == token))
+    link = result.scalar_one_or_none()
+    if not link or (link.expires_at and link.expires_at < datetime.utcnow()):
+        raise HTTPException(404, "Link expired or not found")
+
+    file_result = await db.execute(select(UserFile).where(UserFile.id == link.file_id))
+    uf = file_result.scalar_one_or_none()
+    if not uf:
+        raise HTTPException(404, "File not found")
+
+    link.download_count += 1
+    uf.download_count += 1
+    await db.commit()
+
+    user_result = await db.execute(select(User).where(User.id == uf.user_id))
+    file_user = user_result.scalar_one()
+    upload_dir = Path(UPLOAD_DIR.format(username=file_user.ssh_username))
+    file_path = upload_dir / uf.filename
+
+    if not file_path.exists():
+        raise HTTPException(404, "File not found on server")
+
+    return FileResponse(
+        file_path, media_type="application/octet-stream",
+        filename=uf.original_name
+    )
+
+
+# ── Public Upload ──────────────────────────────────────
+
+PUBLIC_UPLOAD_DIR = Path("/home/public_uploads")
+PUBLIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+@app.get("/upload")
+async def serve_upload_page():
+    upload_html = os.path.join(FRONTEND_DIR, "upload.html")
+    with open(upload_html) as f:
+        return HTMLResponse(f.read())
+
+
+@app.post("/api/public/upload")
+async def public_upload(file: UploadFile, db: AsyncSession = Depends(get_db)):
+    content = await file.read()
+    if len(content) > 100 * 1024 * 1024:  # 100MB max
+        raise HTTPException(400, "File too large (max 100MB)")
+
+    token = uuid.uuid4().hex[:12]
+    stored_name = f"{token}_{file.filename}"
+    (PUBLIC_UPLOAD_DIR / stored_name).write_bytes(content)
+
+    pf = PublicFile(
+        token=token, filename=stored_name,
+        original_name=file.filename, size_bytes=len(content),
+        expires_at=datetime.utcnow() + timedelta(days=7)
+    )
+    db.add(pf)
+    await db.commit()
+
+    download_url = f"{_base_url()}/dl/p/{token}"
+    return {
+        "ok": True,
+        "token": token,
+        "url": download_url,
+        "expires_in": "7 days",
+        "size_bytes": len(content)
+    }
+
+
+@app.get("/dl/p/{token}")
+async def download_public_file(token: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PublicFile).where(PublicFile.token == token))
+    pf = result.scalar_one_or_none()
+    if not pf or (pf.expires_at and pf.expires_at < datetime.utcnow()):
+        raise HTTPException(404, "File not found or expired")
+
+    pf.download_count += 1
+    await db.commit()
+
+    file_path = PUBLIC_UPLOAD_DIR / pf.filename
+    if not file_path.exists():
+        raise HTTPException(404, "File not found on disk")
+
+    return FileResponse(file_path, media_type="application/octet-stream", filename=pf.original_name)
 
 
 # ── Admin ─────────────────────────────────────────────
@@ -525,6 +738,109 @@ async def _count_files(project_id: str, db: AsyncSession) -> int:
         select(func.count(ProjectFile.id)).where(ProjectFile.project_id == project_id)
     )
     return result.scalar() or 0
+
+
+async def _parse_and_save_files(project: Project, user: User, reply: str, file_type: str, db: AsyncSession) -> str:
+    """Parse file:path blocks from AI reply, save to DB+disk, auto-build doc files."""
+    pattern = r'```file:([^\n]+)\n([\s\S]*?)```'
+    matches = re.findall(pattern, reply)
+    if not matches:
+        return ""
+
+    messages = []
+    for file_path, content in matches:
+        file_path = file_path.strip()
+        content = content.strip()
+        if not file_path or not content:
+            continue
+
+        # Save file to DB + disk
+        existing = await db.execute(
+            select(ProjectFile).where(ProjectFile.project_id == project.id, ProjectFile.path == file_path)
+        )
+        pf = existing.scalar_one_or_none()
+        if pf:
+            pf.content = content
+            pf.size_bytes = len(content.encode())
+            pf.updated_at = datetime.utcnow()
+        else:
+            pf = ProjectFile(project_id=project.id, path=file_path, content=content, size_bytes=len(content.encode()))
+            db.add(pf)
+
+        # Write to disk
+        disk_path = _project_path(user, project) / file_path
+        disk_path.parent.mkdir(parents=True, exist_ok=True)
+        disk_path.write_text(content)
+
+        messages.append(f"[saved] {file_path}")
+
+        # Auto-build: execute .py generator scripts for ppt/doc/pdf
+        if file_type in ("ppt", "doc", "pdf") and file_path.endswith(".py"):
+            build_msg = await _exec_build_script(project, user, file_path, db)
+            if build_msg:
+                messages.append(build_msg)
+
+    project.file_count = await _count_files(project.id, db)
+    project.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return "\n".join(messages) if messages else ""
+
+
+async def _exec_build_script(project: Project, user: User, script_path: str, db: AsyncSession) -> str:
+    """Execute a Python generator script to produce the final document file."""
+    proj_dir = _project_path(user, project)
+    script_file = proj_dir / script_path
+
+    if not script_file.exists():
+        return ""
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "python3", str(script_file),
+            cwd=str(proj_dir),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(), timeout=30
+        )
+    except asyncio.TimeoutError:
+        return f"[build] {script_path}: timed out"
+    except Exception as e:
+        return f"[build] {script_path}: {e}"
+
+    if proc.returncode != 0:
+        return f"[build] {script_path}: {stderr.decode()[:200]}"
+
+    # Discover new files created by the script
+    new_files = []
+    for f in proj_dir.iterdir():
+        if f.is_file() and f.name != script_path and f.suffix in (".pptx", ".docx", ".pdf"):
+            rel = f.relative_to(proj_dir)
+            content = f.read_bytes()
+            # Save binary-generated file to DB as base64 reference
+            existing = await db.execute(
+                select(ProjectFile).where(ProjectFile.project_id == project.id, ProjectFile.path == str(rel))
+            )
+            if not existing.scalar_one_or_none():
+                pf = ProjectFile(
+                    project_id=project.id,
+                    path=str(rel),
+                    content=f"[binary: {f.suffix} file, {len(content)} bytes]",
+                    size_bytes=len(content)
+                )
+                db.add(pf)
+                new_files.append(str(rel))
+
+    if new_files:
+        return f"[built] {', '.join(new_files)}"
+    return f"[build] {script_path}: ok"
+
+
+def _base_url() -> str:
+    host = os.environ.get("GIT_HOST", "gristai.top")
+    return f"https://{host}"
 
 
 def _stream_project_tar(user: User, project: Project):

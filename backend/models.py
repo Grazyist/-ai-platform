@@ -111,3 +111,36 @@ class GeneratedFile(Base):
     model_used = Column(String(50))
     credits_cost = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class UserFile(Base):
+    __tablename__ = "user_files"
+    id = Column(String, primary_key=True, default=gen_id)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    filename = Column(String(200), nullable=False)  # stored name
+    original_name = Column(String(200), nullable=False)  # display name
+    size_bytes = Column(Integer, default=0)
+    download_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class FileShareLink(Base):
+    __tablename__ = "file_share_links"
+    id = Column(String, primary_key=True, default=gen_id)
+    file_id = Column(String, ForeignKey("user_files.id"), nullable=False)
+    token = Column(String(50), unique=True, nullable=False)
+    expires_at = Column(DateTime)
+    download_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PublicFile(Base):
+    __tablename__ = "public_files"
+    id = Column(String, primary_key=True, default=gen_id)
+    token = Column(String(30), unique=True, nullable=False, index=True)
+    filename = Column(String(200), nullable=False)
+    original_name = Column(String(200), nullable=False)
+    size_bytes = Column(Integer, default=0)
+    download_count = Column(Integer, default=0)
+    expires_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)

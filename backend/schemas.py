@@ -132,3 +132,19 @@ class ShareLinkOut(BaseModel):
     url: str
     download_count: int
     expires_at: Optional[datetime]
+
+
+class UserFileOut(BaseModel):
+    id: str
+    filename: str
+    original_name: str
+    size_bytes: int
+    download_count: int
+    created_at: datetime
+
+
+class FileShareOut(BaseModel):
+    token: str
+    url: str
+    download_count: int
+    expires_at: Optional[datetime]
