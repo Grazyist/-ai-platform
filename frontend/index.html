@@ -760,8 +760,7 @@ async function delUser(uid,uname){
 }
 
 async function setStorageLimit(uid,uname,current){
-  const mb=prompt(uname+' 当前空间: '+(current/1024/1024).toFixed(0)+'MB
-输入新空间大小(MB):');
+  const mb=prompt(uname+' 当前空间: '+(current/1024/1024).toFixed(0)+'MB\n输入新空间大小(MB):');
   if(mb===null)return;
   await api('PUT','/api/admin/users/'+uid,{storage_limit:parseInt(mb)*1024*1024});
   showToast('Storage limit updated');loadAdminUsers();
@@ -771,14 +770,14 @@ async function loadAdminUploadedFiles(){
     const files=await api('GET','/api/admin/user-files');
     const el=document.getElementById('adminUploadedFilesTable');
     if(!el)return;
-    el.innerHTML=files.map(f=>'<tr>
-      <td>'+esc(f.username)+'</td>
-      <td style="font-size:0.85rem">'+esc(f.original_name)+'</td>
-      <td>'+(f.size_bytes/1024).toFixed(1)+'KB</td>
-      <td>'+f.download_count+'</td>
-      <td style="font-size:0.78rem">'+new Date(f.created_at+'Z').toLocaleString()+'</td>
-      <td><button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delAdminUploadedFile(''+f.id+'',''+esc(f.original_name)+'')">删除</button></td>
-    </tr>').join('')||'<tr><td colspan="6">No files</td></tr>';
+    el.innerHTML=files.map(f=>`<tr>
+          <td>${esc(f.username)}</td>
+          <td style="font-size:0.85rem">${esc(f.original_name)}</td>
+          <td>${(f.size_bytes/1024).toFixed(1)}KB</td>
+          <td>${f.download_count}</td>
+          <td style="font-size:0.78rem">${new Date(f.created_at+'Z').toLocaleString()}</td>
+          <td><button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delAdminUploadedFile('${f.id}','${esc(f.original_name)}')">删除</button></td>
+        </tr>`).join('')||'<tr><td colspan="6">No files</td></tr>';
   }catch(e){}
 }
 async function delAdminUploadedFile(fid,fname){
@@ -791,15 +790,15 @@ async function loadAdminPublicFiles(){
     const files=await api('GET','/api/admin/public-files');
     const el=document.getElementById('adminPublicFilesTable');
     if(!el)return;
-    el.innerHTML=files.map(f=>'<tr>
-      <td style="font-size:0.78rem;font-family:monospace">'+f.token+'</td>
-      <td style="font-size:0.85rem">'+esc(f.original_name)+'</td>
-      <td>'+(f.size_bytes/1024).toFixed(1)+'KB</td>
-      <td>'+f.download_count+'</td>
-      <td>'+(f.has_password?'<span style="color:var(--orange)">有</span>':'无')+'</td>
-      <td style="font-size:0.78rem">'+(f.expires_at?new Date(f.expires_at+'Z').toLocaleString():'永不过期')+'</td>
-      <td><button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delAdminPublicFile(''+f.token+'',''+esc(f.original_name)+'')">删除</button></td>
-    </tr>').join('')||'<tr><td colspan="7">No public files</td></tr>';
+        el.innerHTML=files.map(f=>`<tr>
+          <td style="font-size:0.78rem;font-family:monospace">${f.token}</td>
+          <td style="font-size:0.85rem">${esc(f.original_name)}</td>
+          <td>${(f.size_bytes/1024).toFixed(1)}KB</td>
+          <td>${f.download_count}</td>
+          <td>${f.has_password?'<span style="color:var(--orange)">有</span>':'无'}</td>
+          <td style="font-size:0.78rem">${f.expires_at?new Date(f.expires_at+'Z').toLocaleString():'永不过期'}</td>
+          <td><button class="btn btn-sm btn-outline" style="color:var(--red)" onclick="delAdminPublicFile('${f.token}','${esc(f.original_name)}')">删除</button></td>
+        </tr>`).join('')||'<tr><td colspan="7">No public files</td></tr>';
   }catch(e){}
 }
 async function delAdminPublicFile(token,fname){
