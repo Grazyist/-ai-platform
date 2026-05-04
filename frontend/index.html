@@ -13,7 +13,7 @@
     --bs-body-font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
   }
   body { font-size: 18px; }
-  .app { display: none; width: 100%; height: 100vh; grid-template-columns: 240px 1fr 320px; grid-template-rows: 56px 1fr; }
+  .app { display: none; width: 100%; height: 100vh; grid-template-columns: 240px 1fr 320px; grid-template-rows: 44px 1fr; }
   .sidebar { overflow-y: auto; padding: 12px; }
   .sidebar .sec-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--bs-secondary-color); margin: 12px 0 6px; padding: 0 4px; }
   .chat-area { display: flex; flex-direction: column; overflow: hidden; }
@@ -75,7 +75,7 @@
   .plan-card .detail { font-size: 0.85rem; color: var(--bs-secondary-color); }
   .toast-msg { position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; min-width: 250px; }
   @media (max-width: 992px) {
-    .app { grid-template-columns: 1fr; grid-template-rows: 48px 1fr; }
+    .app { grid-template-columns: 1fr; grid-template-rows: 44px 1fr; }
     .sidebar, .right-panel { display: none !important; position:fixed; top:0; left:0; height:100vh; z-index:1100; width:280px; transition:transform .2s; }
     .sidebar.mobile-show { display:block !important; }
     .right-panel { left:auto; right:0; width:300px; }
@@ -139,21 +139,26 @@
 <!-- ====== App ====== -->
 <div class="app" id="appLayout">
   <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobilePanels()"></div>
-  <div class="bg-body-tertiary border-bottom d-flex align-items-center justify-content-between px-2 px-lg-3" style="grid-column:1/-1">
-    <div class="d-flex align-items-center gap-1 gap-lg-3">
-      <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleMobileSidebar()" title="Projects" style="width:32px;height:32px;padding:0">☰</button>
-      <span class="fw-bold text-primary fs-5">AI Platform</span>
+  <div class="bg-body-tertiary border-bottom d-flex align-items-center justify-content-between px-2 px-lg-3" style="grid-column:1/-1;height:44px">
+    <div class="d-flex align-items-center gap-2 gap-lg-3">
+      <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleMobileSidebar()" title="Projects" style="width:28px;height:28px;padding:0;font-size:0.8rem">☰</button>
+      <span class="fw-bold text-primary" style="font-size:1.1rem">AI Platform</span>
+      <select class="form-select form-select-sm d-none d-lg-inline-block" style="width:auto;font-size:0.8rem" id="modelSelect" onchange="state.selectedModel=this.value"><option value="deepseek-chat">DeepSeek</option></select>
+      <div class="filetype-tabs d-none d-lg-flex" id="fileTypeTabs">
+        <span class="ft-tab active" data-ft="code" onclick="selectFileType('code')" key="code" style="padding:2px 8px;font-size:0.78rem">💻 代码</span>
+        <span class="ft-tab" data-ft="html" onclick="selectFileType('html')" style="padding:2px 8px;font-size:0.78rem">🌐 HTML</span>
+        <span class="ft-tab" data-ft="ppt" onclick="selectFileType('ppt')" style="padding:2px 8px;font-size:0.78rem">📊 PPT</span>
+        <span class="ft-tab" data-ft="doc" onclick="selectFileType('doc')" style="padding:2px 8px;font-size:0.78rem">📄 DOC</span>
+        <span class="ft-tab" data-ft="pdf" onclick="selectFileType('pdf')" style="padding:2px 8px;font-size:0.78rem">📕 PDF</span>
+      </div>
     </div>
     <div class="d-flex align-items-center gap-1 gap-lg-2 topbar-actions">
-      <span class="text-warning small fw-semibold" id="creditsDisplay">100 credits</span>
-      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="toggleLang()" id="langBtn1">EN</button>
-      <span class="badge bg-primary d-none d-lg-inline-block" id="planBadge">Free</span>
-      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="openBilling()" key="upgrade">升级</button>
-      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showRightTab('info')" key="ssh_btn">SSH</button>
-      <span class="small text-secondary d-none d-lg-inline" id="userName"></span>
-      <button class="btn btn-warning btn-sm fw-bold d-none d-lg-inline-flex" id="adminBtn" style="display:none" onclick="showAdminView()" key="admin">⚡ 管理后台</button>
-      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="doLogout()" key="logout">退出</button>
-      <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleMobileRightPanel()" title="Menu" style="width:32px;height:32px;padding:0">⋯</button>
+      <span class="text-warning small fw-semibold" id="creditsDisplay" style="font-size:0.78rem">100</span>
+      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="toggleLang()" id="langBtn1" style="font-size:0.75rem;padding:2px 6px">EN</button>
+      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="openBilling()" key="upgrade" style="font-size:0.75rem;padding:2px 6px">升级</button>
+      <button class="btn btn-warning btn-sm fw-bold d-none d-lg-inline-flex" id="adminBtn" style="display:none;font-size:0.75rem;padding:2px 8px" onclick="showAdminView()" key="admin">⚡ 管理后台</button>
+      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="doLogout()" key="logout" style="font-size:0.75rem;padding:2px 6px">退出</button>
+      <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleMobileRightPanel()" title="Menu" style="width:28px;height:28px;padding:0;font-size:0.8rem">⋯</button>
     </div>
   </div>
 
@@ -253,18 +258,6 @@
 
   <!-- Chat -->
   <div class="chat-area">
-    <div class="d-flex align-items-center gap-3 p-2 px-3 bg-body-tertiary border-bottom flex-wrap">
-      <span class="small text-secondary fw-semibold" key="model">模型:</span>
-      <select class="form-select form-select-sm w-auto" id="modelSelect" onchange="state.selectedModel=this.value"><option value="deepseek-chat">DeepSeek Chat</option></select>
-      <span class="small text-secondary fw-semibold" key="file_type">生成类型:</span>
-      <div class="filetype-tabs" id="fileTypeTabs">
-        <span class="ft-tab active" data-ft="code" onclick="selectFileType('code')">💻 Code</span>
-        <span class="ft-tab" data-ft="html" onclick="selectFileType('html')">🌐 HTML</span>
-        <span class="ft-tab" data-ft="ppt" onclick="selectFileType('ppt')">📊 PPT</span>
-        <span class="ft-tab" data-ft="doc" onclick="selectFileType('doc')">📄 DOC</span>
-        <span class="ft-tab" data-ft="pdf" onclick="selectFileType('pdf')">📕 PDF</span>
-      </div>
-    </div>
     <div class="chat-msgs" id="chatMessages"><div class="text-center text-secondary py-5" key="chat_hint">选择项目，选模型和文件类型，开始对话构建</div></div>
     <div class="border-top p-3 bg-body-tertiary d-flex gap-2">
       <textarea class="form-control" id="chatInput" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
