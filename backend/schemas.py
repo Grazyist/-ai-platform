@@ -150,5 +150,6 @@ class UserFileOut(BaseModel):
 class FileShareOut(BaseModel):
     token: str
     url: str
+    qr_url: str = ""
     download_count: int
     expires_at: Optional[datetime]

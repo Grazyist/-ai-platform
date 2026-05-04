@@ -57,7 +57,7 @@
   .file-item .fmeta { font-size: 0.72rem; color: var(--bs-secondary-color); }
   .file-item .fbtn { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; cursor: pointer; border: 1px solid var(--bs-border-color); background: transparent; color: var(--bs-secondary-color); white-space: nowrap; }
   .file-item .fbtn:hover { color: var(--bs-primary); border-color: var(--bs-primary); }
-  .share-link-box { padding: 8px; background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 6px; font-size: 0.78rem; font-family: monospace; word-break: break-all; margin-top: 6px; display: none; color: var(--bs-success); }
+  .share-link-box { padding: 10px; background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 6px; font-size: 0.78rem; font-family: monospace; word-break: break-all; margin-top: 6px; display: none; color: var(--bs-success); }
   .storage-bar { background: var(--bs-tertiary-bg); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; }
   .usage-bar { height: 100%; background: var(--bs-primary); border-radius: 2px 2px 0 0; min-width: 20px; transition: height .3s; }
   .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -1119,7 +1119,7 @@ async function shareUserFile(fid){
   try{
     const link=await api('POST',`/api/files/${fid}/share?expires_hours=48`);
     const box=$('shareBox_'+fid);
-    box.innerHTML='🔗 <a href="'+link.url+'" target="_blank">'+link.url+'</a>';
+    box.innerHTML='<div class="d-flex align-items-start gap-3"><div class="flex-fill"><div>🔗 <a href="'+link.url+'" target="_blank" style="word-break:break-all">'+link.url+'</a></div></div><div class="text-center flex-shrink-0"><img src="'+link.qr_url+'" style="width:80px;height:80px" alt="QR"><div class="text-secondary" style="font-size:0.6rem">扫码下载</div></div></div>';
     box.style.display='block';
   }catch(e){showToast(e.message,true)}
 }

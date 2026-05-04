@@ -482,7 +482,15 @@ async def share_user_file(file_id: str, expires_hours: int = 48, user: User = De
     )
     db.add(link)
     await db.commit()
-    return FileShareOut(token=token, url=f"{_base_url()}/dl/file/{token}", download_count=0, expires_at=link.expires_at)
+    url = f"{_base_url()}/dl/file/{token}"
+    qr = qrcode.QRCode(box_size=6, border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    qr_url = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+    return FileShareOut(token=token, url=url, qr_url=qr_url, download_count=0, expires_at=link.expires_at)
 
 
 @app.get("/api/files/shares", response_model=list[FileShareOut])
@@ -495,10 +503,16 @@ async def list_file_shares(user: User = Depends(get_current_user), db: AsyncSess
     links = result.scalars().all()
     out = []
     for link in links:
-        file_result = await db.execute(select(UserFile).where(UserFile.id == link.file_id))
-        uf = file_result.scalar_one_or_none()
+        url = f"{_base_url()}/dl/file/{link.token}"
+        qr = qrcode.QRCode(box_size=4, border=1)
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_url = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
         out.append(FileShareOut(
-            token=link.token, url=f"{_base_url()}/dl/file/{link.token}",
+            token=link.token, url=url, qr_url=qr_url,
             download_count=link.download_count, expires_at=link.expires_at
         ))
     return out
@@ -574,10 +588,18 @@ async def public_upload(
     await db.commit()
 
     download_url = f"{_base_url()}/dl/p/{token}"
+    qr = qrcode.QRCode(box_size=8, border=2)
+    qr.add_data(download_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    qr_url = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
     return {
         "ok": True,
         "token": token,
         "url": download_url,
+        "qr_url": qr_url,
         "expires_in": "7 days",
         "size_bytes": len(content),
         "has_password": bool(password)

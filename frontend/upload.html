@@ -30,12 +30,17 @@
   .progress .bar{height:100%;background:var(--accent);border-radius:3px;transition:width .2s;width:0}
 
   .result{display:none;background:var(--bg);border:1px solid var(--green);border-radius:8px;padding:16px;margin-top:12px}
-  .result .label{font-size:0.8rem;color:var(--dim);margin-bottom:4px}
+  .result .label{font-size:0.8rem;color:var(--dim);margin-bottom:8px}
+  .result .row{display:flex;align-items:flex-start;gap:12px}
+  .result .link-col{flex:1;min-width:0}
   .result .url-box{display:flex;align-items:center;gap:8px}
   .result input{flex:1;height:40px;padding:0 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--green);font-size:0.85rem;font-family:monospace;outline:none}
   .result button{height:40px;padding:0 16px;border-radius:6px;font-size:0.85rem;cursor:pointer;font-weight:600;border:none;white-space:nowrap}
   .btn-copy{background:var(--accent);color:#fff}
   .btn-copy:hover{filter:brightness(1.12)}
+  .qr-col{flex-shrink:0;text-align:center}
+  .qr-col img{width:100px;height:100px;border-radius:6px;background:#fff;padding:4px}
+  .qr-col .hint{font-size:0.7rem;color:var(--dim);margin-top:4px}
 
   .error{display:none;color:var(--red);font-size:0.85rem;margin-top:8px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--red)}
 
@@ -72,9 +77,14 @@
 
   <div class="result" id="result">
     <div class="label">✅ 上传成功！复制链接分享：</div>
-    <div class="url-box">
-      <input id="linkInput" readonly onclick="this.select()">
-      <button class="btn-copy" onclick="copyLink()">复制</button>
+    <div class="row">
+      <div class="link-col">
+        <div class="url-box">
+          <input id="linkInput" readonly onclick="this.select()">
+          <button class="btn-copy" onclick="copyLink()">复制</button>
+        </div>
+      </div>
+      <div class="qr-col" id="qrCode"></div>
     </div>
   </div>
 </div>
@@ -131,6 +141,11 @@ async function handleFile(file) {
           document.querySelector('.result .label').textContent = '✅ 上传成功（已加密）！复制链接分享：';
         } else {
           document.querySelector('.result .label').textContent = '✅ 上传成功！复制链接分享：';
+        }
+        if(data.qr_url){
+          document.getElementById('qrCode').innerHTML = '<img src="'+data.qr_url+'" alt="QR"><div class="hint">扫码下载</div>';
+        } else {
+          document.getElementById('qrCode').innerHTML = '';
         }
         document.getElementById('result').style.display = 'block';
       } else {
