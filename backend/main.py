@@ -250,7 +250,7 @@ async def chat(data: ChatRequest, user: User = Depends(get_current_user), db: As
     except ValueError as e:
         raise HTTPException(402, str(e))
     except RuntimeError as e:
-        raise HTTPException(502, str(e))
+        raise HTTPException(500, str(e))
 
     # Parse and save files from AI response, auto-build document types
     built_files = await _parse_and_save_files(project, user, result["reply"], data.file_type, db)
