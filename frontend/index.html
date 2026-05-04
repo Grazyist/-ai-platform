@@ -75,10 +75,21 @@
   .plan-card .detail { font-size: 0.85rem; color: var(--bs-secondary-color); }
   .toast-msg { position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; min-width: 250px; }
   @media (max-width: 992px) {
-    .app { grid-template-columns: 1fr; grid-template-rows: 56px 1fr; }
-    .sidebar, .right-panel { display: none !important; }
+    .app { grid-template-columns: 1fr; grid-template-rows: 48px 1fr; }
+    .sidebar, .right-panel { display: none !important; position:fixed; top:0; left:0; height:100vh; z-index:1100; width:280px; transition:transform .2s; }
+    .sidebar.mobile-show { display:block !important; }
+    .right-panel { left:auto; right:0; width:320px; }
+    .right-panel.mobile-show { display:block !important; }
+    .mobile-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1099; }
+    .mobile-overlay.show { display:block; }
     .feature-grid { grid-template-columns: 1fr; }
     .plan-grid, .settings-grid { grid-template-columns: 1fr; }
+    .topbar-actions .btn-sm { font-size:0.7rem; padding:2px 6px; }
+    body { font-size: 16px; }
+    .msg { max-width: 95%; }
+    .chat-msgs { padding: 12px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .admin-tab { font-size:0.75rem; padding:0 8px; }
   }
 </style>
 </head>
@@ -126,10 +137,13 @@
 
 <!-- ====== App ====== -->
 <div class="app" id="appLayout">
-  <!-- Topbar -->
-  <div class="bg-body-tertiary border-bottom d-flex align-items-center justify-content-between px-3" style="grid-column:1/-1">
-    <span class="fw-bold text-primary fs-5">AI Platform</span>
-    <div class="d-flex align-items-center gap-2">
+  <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobilePanels()"></div>
+  <div class="bg-body-tertiary border-bottom d-flex align-items-center justify-content-between px-2 px-lg-3" style="grid-column:1/-1">
+    <div class="d-flex align-items-center gap-1 gap-lg-3">
+      <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleMobileSidebar()" title="Projects" style="width:32px;height:32px;padding:0">☰</button>
+      <span class="fw-bold text-primary fs-5">AI Platform</span>
+    </div>
+    <div class="d-flex align-items-center gap-1 gap-lg-2 topbar-actions">
       <button class="btn btn-outline-secondary btn-sm" onclick="toggleLang()" id="langBtn1">EN</button>
       <span class="badge bg-primary" id="planBadge">Free</span>
       <span class="text-warning small fw-semibold" id="creditsDisplay">100 credits</span>
@@ -137,6 +151,7 @@
       <button class="btn btn-outline-secondary btn-sm" onclick="showRightTab('info')" key="ssh_btn">SSH</button>
       <span class="small text-secondary" id="userName"></span>
       <button class="btn btn-warning btn-sm fw-bold" id="adminBtn" style="display:none" onclick="showAdminView()" key="admin">⚡ 管理后台</button>
+      <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleMobileRightPanel()" title="Files" style="width:32px;height:32px;padding:0">⋯</button>
       <button class="btn btn-outline-secondary btn-sm" onclick="doLogout()" key="logout">退出</button>
     </div>
   </div>
@@ -590,6 +605,27 @@ function hideAdminView(){
   document.querySelector('.chat-area').style.display='';
   document.querySelector('.right-panel').style.display='';
   $('adminView').style.display='none';
+}
+
+function toggleMobileSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const rp=document.querySelector('.right-panel');
+  rp.classList.remove('mobile-show');
+  sb.classList.toggle('mobile-show');
+  $('mobileOverlay').classList.toggle('show', sb.classList.contains('mobile-show'));
+}
+function toggleMobileRightPanel(){
+  const rp=document.querySelector('.right-panel');
+  const sb=document.querySelector('.sidebar');
+  sb.classList.remove('mobile-show');
+  rp.classList.toggle('mobile-show');
+  $('mobileOverlay').classList.toggle('show', rp.classList.contains('mobile-show'));
+  if(rp.classList.contains('mobile-show')){loadSSH();loadUserFiles();}
+}
+function closeMobilePanels(){
+  document.querySelector('.sidebar').classList.remove('mobile-show');
+  document.querySelector('.right-panel').classList.remove('mobile-show');
+  $('mobileOverlay').classList.remove('show');
 }
 
 async function loadDashboard(){
