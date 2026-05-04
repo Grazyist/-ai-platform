@@ -946,6 +946,28 @@ async def admin_delete_public_file(token: str, admin: User = Depends(get_admin),
     return {"ok": True}
 
 
+@app.post("/api/admin/public-files/{token}/replace")
+async def admin_replace_public_file(token: str, file: UploadFile,
+                                     admin: User = Depends(get_admin),
+                                     db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PublicFile).where(PublicFile.token == token))
+    pf = result.scalar_one_or_none()
+    if not pf:
+        raise HTTPException(404, "File not found")
+    content = await file.read()
+    if len(content) > 100 * 1024 * 1024:
+        raise HTTPException(400, "File too large (max 100MB)")
+    # Delete old file, write new one
+    (PUBLIC_UPLOAD_DIR / pf.filename).unlink(missing_ok=True)
+    stored_name = f"{token}_{file.filename}"
+    (PUBLIC_UPLOAD_DIR / stored_name).write_bytes(content)
+    pf.filename = stored_name
+    pf.original_name = file.filename
+    pf.size_bytes = len(content)
+    await db.commit()
+    return {"ok": True, "original_name": file.filename, "size_bytes": len(content)}
+
+
 @app.get("/api/admin/users/{user_id}/detail")
 async def admin_user_detail(user_id: str, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.id == user_id))

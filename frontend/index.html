@@ -1029,9 +1029,26 @@ async function loadAdminPublicFiles(){
       <td>${f.download_count}</td>
       <td>${f.has_password?'<span class="text-warning">有</span>':'无'}</td>
       <td class="small">${f.expires_at?new Date(f.expires_at+'Z').toLocaleString():'永不过期'}</td>
-      <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="delAdminPublicFile('${f.token}','${esc(f.original_name)}')">删除</button></td>
-    </tr>`).join('')||'<tr><td colspan="7">No public files</td></tr>';
+      <td class="d-flex gap-1">
+        <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="document.getElementById('replaceFile_${f.token}').click()">替换</button>
+        <input type="file" id="replaceFile_${f.token}" style="display:none" onchange="replacePublicFile('${f.token}',this)">
+        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="delAdminPublicFile('${f.token}','${esc(f.original_name)}')">删除</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="8">No public files</td></tr>';
   }catch(e){}
+}
+async function replacePublicFile(token,input){
+  const file=input.files[0];
+  if(!file)return;
+  if(!confirm(`替换公开文件为 "${file.name}"？链接保持不变。`))return;
+  const fd=new FormData();fd.append('file',file);
+  try{
+    const r=await fetch(API+'/api/admin/public-files/'+token+'/replace',{
+      method:'POST',headers:{'Authorization':'Bearer '+state.token},body:fd
+    });
+    if(!r.ok){const d=await r.json();throw new Error(d.detail||'Replace failed')}
+    showToast('文件已替换，链接不变');loadAdminPublicFiles();
+  }catch(e){showToast(e.message,true)}
 }
 async function delAdminPublicFile(token,fname){
   if(!confirm('Delete public file: '+fname+'?'))return;
