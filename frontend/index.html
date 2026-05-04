@@ -82,7 +82,8 @@
     .right-panel.mobile-show { display:block !important; }
     .mobile-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1099; }
     .mobile-overlay.show { display:block; }
-    .feature-grid { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: 1fr; gap:12px; }
+    .feature-grid .card { padding:1rem !important; }
     .plan-grid, .settings-grid { grid-template-columns: 1fr; }
     .topbar-actions .btn-sm { font-size:0.7rem; padding:2px 6px; }
     body { font-size: 16px; }
@@ -96,15 +97,15 @@
 <body>
 
 <!-- ====== Landing ====== -->
-<div id="landingPage" class="min-vh-100 d-flex flex-column align-items-center py-5 d-none">
-  <div class="text-end w-100 mb-3" style="max-width:960px">
+<div id="landingPage" class="min-vh-100 d-flex flex-column align-items-center py-3 py-lg-5 d-none">
+  <div class="text-end w-100 mb-2 mb-lg-3" style="max-width:960px">
     <button class="btn btn-outline-secondary btn-sm" onclick="toggleLang()" id="langBtn0">EN</button>
   </div>
-  <div class="text-center mb-5">
-    <h1 class="display-4 fw-bold text-primary mb-3">AI Platform</h1>
-    <p class="fs-5 text-secondary" key="hero_sub" id="heroSub">用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发</p>
+  <div class="text-center mb-3 mb-lg-5">
+    <h1 class="fw-bold text-primary mb-2" style="font-size:clamp(1.5rem,5vw,3.5rem)">AI Platform</h1>
+    <p class="text-secondary mb-0" style="font-size:clamp(0.9rem,2.5vw,1.25rem)" key="hero_sub" id="heroSub">用 AI 对话生成完整项目 · 一键下载 · SSH 远程开发</p>
   </div>
-  <div class="feature-grid">
+  <div class="feature-grid mb-3 mb-lg-4">
     <div class="card text-center p-4"><div class="fs-1 mb-2">🤖</div><h5 key="feat_ai">AI 编程</h5><p class="text-secondary mb-0" key="feat_ai_desc">与 AI 对话生成代码，支持 Python/JS/HTML/PPT/Word/PDF</p></div>
     <div class="card text-center p-4"><div class="fs-1 mb-2">📦</div><h5 key="feat_dl">下载分享</h5><p class="text-secondary mb-0" key="feat_dl_desc">项目打包下载，生成分享链接，一键导出</p></div>
     <div class="card text-center p-4"><div class="fs-1 mb-2">💻</div><h5 key="feat_ssh">SSH 远程</h5><p class="text-secondary mb-0" key="feat_ssh_desc">独立 SSH 账号，任意终端 clone/push/edit</p></div>
