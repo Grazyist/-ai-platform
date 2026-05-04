@@ -21,6 +21,10 @@ from schemas import *
 from auth import hash_password, verify_password, create_token, get_current_user, get_admin
 from ai_proxy import ai_proxy
 from config import PLANS, MODELS, FILE_TYPES, SSH_BASE_DIR, PROJECTS_DIR, UPLOAD_DIR, MAX_STORAGE_BYTES
+import config
+import qrcode
+import base64
+import psutil
 
 app = FastAPI(title="AI Platform", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -34,11 +38,9 @@ async def startup():
         result = await db.execute(select(SystemSetting))
         for s in result.scalars().all():
             if s.key == "deepseek_api_key" and s.value:
-                import config
                 config.DEEPSEEK_API_KEY = s.value
                 ai_proxy.api_key = s.value
             elif s.key == "secret_key" and s.value:
-                import config
                 config.SECRET_KEY = s.value
             elif s.key == "git_host" and s.value:
                 os.environ["GIT_HOST"] = s.value
@@ -301,7 +303,6 @@ async def create_payment(data: PaymentRequest, user: User = Depends(get_current_
     await db.refresh(payment)
 
     # Generate QR code as base64 data URL
-    import qrcode, io, base64
     qr = qrcode.QRCode(box_size=8, border=2)
     qr.add_data(f"gristai.top/pay/{trade_no}")
     qr.make(fit=True)
@@ -812,7 +813,6 @@ async def admin_dashboard(admin: User = Depends(get_admin), db: AsyncSession = D
 
 @app.get("/api/admin/health")
 async def admin_health(admin: User = Depends(get_admin)):
-    import psutil
     return {
         "cpu_pct": psutil.cpu_percent(interval=0.5),
         "mem_used_pct": psutil.virtual_memory().percent,
@@ -1026,7 +1026,6 @@ async def admin_set_settings(data: dict, admin: User = Depends(get_admin), db: A
 
     # Reload AI proxy with new key if updated
     if "deepseek_api_key" in data:
-        import config
         config.DEEPSEEK_API_KEY = data["deepseek_api_key"]
         ai_proxy.api_key = data["deepseek_api_key"]
 
@@ -1037,7 +1036,6 @@ async def admin_set_settings(data: dict, admin: User = Depends(get_admin), db: A
 async def admin_reload_settings(admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(SystemSetting))
     settings = {s.key: s.value for s in result.scalars().all()}
-    import config
     for k, v in settings.items():
         if k == "deepseek_api_key": config.DEEPSEEK_API_KEY = v; ai_proxy.api_key = v
         elif k == "secret_key": config.SECRET_KEY = v

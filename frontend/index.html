@@ -467,7 +467,6 @@ async function enterApp(){
   $('landingPage').classList.add('d-none');
   $('appLayout').style.display='grid';
   document.body.classList.add('app-mode');
-  $('userName').textContent=state.user.username;$('planBadge').textContent=state.user.plan;
   $('creditsDisplay').textContent=Math.round(state.user.credits)+' credits';
   if(state.user.is_admin){$('adminBtn').style.display='inline-flex';$('adminBtnMobile').style.display='';}
   try{const models=await api('GET','/api/models');populateModels(models)}catch(e){}
@@ -506,7 +505,7 @@ async function selectProject(id){
   state.files=await api('GET',`/api/projects/${id}/files`);
   renderProjects();renderFiles();renderProjectInfo(p);
 }
-async function downloadProject(){if(!state.activeProject)return;window.open(API+`/api/projects/${state.activeProject}/download?token=`+state.token,'_blank')}
+async function downloadProject(){if(!state.activeProject)return;try{const r=await fetch(API+`/api/projects/${state.activeProject}/download`,{headers:{'Authorization':'Bearer '+state.token}});if(!r.ok)throw new Error('Download failed');const blob=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='project.tar.gz';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){showToast(e.message,true)}}
 async function shareProject(){
   if(!state.activeProject)return;const link=await api('POST',`/api/projects/${state.activeProject}/share?expires_hours=48`);
   $('shareResult').innerHTML=`<p class="text-success">Share:</p><code>${link.url}</code>`;
@@ -893,7 +892,7 @@ async function initiatePayment(){
 async function confirmPayment(){
   if(!state.currentPayment)return;
   const result=await api('POST',`/api/billing/confirm/${state.currentPayment.trade_no}`);
-  $('planBadge').textContent=result.plan;$('creditsDisplay').textContent=Math.round(result.credits)+' credits';
+  $('creditsDisplay').textContent=Math.round(result.credits)+' credits';
   state.user.plan=result.plan;state.user.credits=result.credits;closeBilling();showToast(t('payment_ok'));
 }
 
