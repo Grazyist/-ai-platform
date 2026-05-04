@@ -13,7 +13,7 @@
     --bs-body-font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
   }
   body { font-size: 18px; }
-  .app { display: none; width: 100%; height: 100vh; grid-template-columns: 280px 1fr 380px; grid-template-rows: 56px 1fr; }
+  .app { display: none; width: 100%; height: 100vh; grid-template-columns: 240px 1fr 320px; grid-template-rows: 56px 1fr; }
   .sidebar { overflow-y: auto; padding: 12px; }
   .sidebar .sec-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--bs-secondary-color); margin: 12px 0 6px; padding: 0 4px; }
   .chat-area { display: flex; flex-direction: column; overflow: hidden; }
@@ -78,7 +78,7 @@
     .app { grid-template-columns: 1fr; grid-template-rows: 48px 1fr; }
     .sidebar, .right-panel { display: none !important; position:fixed; top:0; left:0; height:100vh; z-index:1100; width:280px; transition:transform .2s; }
     .sidebar.mobile-show { display:block !important; }
-    .right-panel { left:auto; right:0; width:320px; }
+    .right-panel { left:auto; right:0; width:300px; }
     .right-panel.mobile-show { display:block !important; }
     .mobile-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1099; }
     .mobile-overlay.show { display:block; }
@@ -274,10 +274,13 @@
 
   <!-- Right Panel -->
   <div class="right-panel bg-body-tertiary border-start" id="rightPanel">
-    <div class="d-flex gap-2 mb-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex gap-2">
       <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="showRightTab('preview')" key="preview">预览</button>
       <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="showRightTab('info')" key="info_tab">信息</button>
       <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="showRightTab('files')" key="my_files">文件</button>
+      </div>
+      <button class="btn-close btn-close-white" onclick="$('rightPanel').classList.remove('show');closeMobilePanels()" title="Close"></button>
     </div>
     <div id="rightPreview">
       <h6 class="text-secondary text-uppercase small fw-semibold" key="latest_file">最新文件</h6>
@@ -507,7 +510,7 @@ async function delProject(id){if(!confirm('Delete?'))return;await api('DELETE','
 async function selectProject(id){
   state.activeProject=id;const p=state.projects.find(p=>p.id===id);
   state.files=await api('GET',`/api/projects/${id}/files`);
-  renderProjects();renderFiles();renderProjectInfo(p);$('rightPanel').classList.add('show');
+  renderProjects();renderFiles();renderProjectInfo(p);
 }
 async function downloadProject(){if(!state.activeProject)return;window.open(API+`/api/projects/${state.activeProject}/download?token=`+state.token,'_blank')}
 async function shareProject(){
@@ -558,6 +561,7 @@ function renderChat(){$('chatMessages').innerHTML='<div class="text-center text-
 
 // ── Right Panel ──────────────────────────────────────
 function showRightTab(tab){
+  $('rightPanel').classList.add('show');
   $('rightPreview').style.display=tab==='preview'?'block':'none';
   $('rightInfo').style.display=tab==='info'?'block':'none';
   $('rightFiles').style.display=tab==='files'?'block':'none';
