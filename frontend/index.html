@@ -85,7 +85,7 @@
 <body>
 
 <!-- ====== Landing ====== -->
-<div id="landingPage" class="min-vh-100 d-flex flex-column align-items-center py-5" style="display:none">
+<div id="landingPage" class="min-vh-100 d-flex flex-column align-items-center py-5 d-none">
   <div class="text-end w-100 mb-3" style="max-width:960px">
     <button class="btn btn-outline-secondary btn-sm" onclick="toggleLang()" id="langBtn0">EN</button>
   </div>
@@ -440,11 +440,11 @@ function switchAuthTab(tab){
 async function doLogin(){try{const d=await api('POST','/api/auth/login',{username:$('loginUser').value,password:$('loginPass').value});setAuth(d);enterApp()}catch(e){showErr('loginErr',e.message)}}
 async function doRegister(){try{const d=await api('POST','/api/auth/register',{username:$('regUser').value,email:$('regEmail').value,password:$('regPass').value});setAuth(d);enterApp()}catch(e){showErr('regErr',e.message)}}
 function setAuth(d){state.token=d.access_token;state.user=d.user;if(d.access_token)localStorage.setItem('ai_platform_token',d.access_token)}
-function doLogout(){localStorage.removeItem('ai_platform_token');state.token=null;state.user=null;state.projects=[];state.activeProject=null;state.files=[];$('appLayout').style.display='none';$('adminView').style.display='none';document.querySelector('.sidebar').style.display='';document.querySelector('.chat-area').style.display='';document.querySelector('.right-panel').style.display='';document.body.classList.remove('app-mode');$('adminBtn').style.display='none';$('landingPage').style.display='';loadWelcome();applyLang()}
+function doLogout(){localStorage.removeItem('ai_platform_token');state.token=null;state.user=null;state.projects=[];state.activeProject=null;state.files=[];$('appLayout').style.display='none';$('adminView').style.display='none';document.querySelector('.sidebar').style.display='';document.querySelector('.chat-area').style.display='';document.querySelector('.right-panel').style.display='';document.body.classList.remove('app-mode');$('adminBtn').style.display='none';$('landingPage').classList.remove('d-none');loadWelcome();applyLang()}
 function showErr(id,msg){const e=$(id);e.textContent=msg;e.classList.remove('d-none');setTimeout(()=>e.classList.add('d-none'),4000)}
 
 async function enterApp(){
-  $('landingPage').style.display='none';
+  $('landingPage').classList.add('d-none');
   $('appLayout').style.display='grid';
   document.body.classList.add('app-mode');
   $('userName').textContent=state.user.username;$('planBadge').textContent=state.user.plan;
@@ -982,7 +982,7 @@ async function loadWelcome(){
     // Token invalid — clear it
     localStorage.removeItem('ai_platform_token');
   }
-  $('landingPage').style.display = '';
+  $('landingPage').classList.remove('d-none');
   loadWelcome();
   applyLang();
 })();
