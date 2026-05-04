@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-bs-theme="dark">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -130,8 +130,9 @@
       <button class="btn btn-success w-100" onclick="doRegister()" key="reg_btn">注册</button>
     </div>
   </div>
-  <div class="text-center mt-3">
+  <div class="text-center mt-3 d-flex justify-content-center gap-3">
     <a href="#" class="text-secondary text-decoration-none small" onclick="toggleLang()" id="langBtn0">EN</a>
+    <a href="#" class="text-secondary text-decoration-none small" onclick="toggleTheme()" id="themeBtn0">☀️</a>
   </div>
   <p class="mt-3 text-secondary small" key="footer_info">gristai.top | 免费 100 credits · 3项目 | Pro ¥49/月</p>
 </div>
@@ -156,6 +157,7 @@
       <span class="text-warning small fw-semibold" id="creditsDisplay" style="font-size:0.78rem">100</span>
       <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showRightTab('files')" title="Files" style="font-size:0.75rem;padding:2px 6px">📋</button>
       <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="toggleLang()" id="langBtn1" style="font-size:0.75rem;padding:2px 6px">EN</button>
+      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="toggleTheme()" id="themeBtn1" style="font-size:0.75rem;padding:2px 6px">☀️</button>
       <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="openBilling()" key="upgrade" style="font-size:0.75rem;padding:2px 6px">升级</button>
       <button class="btn btn-warning btn-sm fw-bold d-none d-lg-inline-flex" id="adminBtn" style="display:none;font-size:0.75rem;padding:2px 8px" onclick="showAdminView()" key="admin">⚡ 管理后台</button>
       <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="doLogout()" key="logout" style="font-size:0.75rem;padding:2px 6px">退出</button>
@@ -175,6 +177,7 @@
       <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('files')" id="atabFiles" key="admin_tab_files">📄 文件</button></li>
       <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('revenue')" id="atabRevenue" key="admin_tab_revenue">💰 收益</button></li>
       <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('system')" id="atabSystem" key="admin_tab_system">⚙️ 系统</button></li>
+      <li class="nav-item"><button class="nav-link admin-tab" onclick="adminTab('database')" id="atabDatabase">🗄️ 数据库</button></li>
     </ul>
     <div id="adminDashboard">
       <div class="stats-row" id="adminStats"></div>
@@ -237,6 +240,37 @@
       <button class="btn btn-primary" onclick="saveSettings()" key="save_settings">💾 保存设置</button>
       <div class="card p-3 mt-3"><h6 class="text-secondary small text-uppercase">🖥️ 系统详情</h6><div id="systemDetail">Loading...</div></div>
     </div>
+    <div id="adminDatabase" style="display:none">
+      <div class="d-flex gap-2 mb-3 align-items-end">
+        <div style="flex:1">
+          <label class="form-label small">选择表</label>
+          <select class="form-select form-select-sm" id="dbTableSelect" onchange="loadDbTable()"></select>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" onclick="loadDbTables()">刷新</button>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="small text-secondary" id="dbTableInfo"></span>
+        <div class="d-flex gap-1">
+          <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="dbPage(-1)">◀</button>
+          <span class="small text-secondary px-2" id="dbPageInfo">1</span>
+          <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="dbPage(1)">▶</button>
+        </div>
+      </div>
+      <div class="table-responsive" style="max-height:50vh;overflow-y:auto">
+        <table class="table table-sm table-bordered small" style="font-size:0.75rem">
+          <thead id="dbTableHead"></thead>
+          <tbody id="dbTableBody"></tbody>
+        </table>
+      </div>
+      <hr>
+      <h6 class="text-secondary small text-uppercase">📝 SQL 查询</h6>
+      <div class="mb-2"><textarea class="form-control form-control-sm" id="dbSqlInput" rows="3" style="font-family:monospace;font-size:0.8rem" placeholder="SELECT * FROM users LIMIT 10"></textarea></div>
+      <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-outline-secondary btn-sm" onclick="execSql()">执行</button>
+        <span class="small text-secondary" id="dbSqlInfo"></span>
+      </div>
+      <div class="table-responsive" style="max-height:40vh;overflow-y:auto" id="dbSqlResult"></div>
+    </div>
   </div>
 
   <!-- Sidebar -->
@@ -253,6 +287,7 @@
       <button class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="closeMobilePanels();showRightTab('info')" key="ssh_btn">SSH</button>
       <button class="btn btn-warning btn-sm w-100 mb-1" id="adminBtnMobile" style="display:none" onclick="closeMobilePanels();showAdminView()" key="admin">⚡ 管理后台</button>
       <button class="btn btn-outline-secondary btn-sm w-100" onclick="closeMobilePanels();toggleLang()" id="langBtnMobile">EN</button>
+      <button class="btn btn-outline-secondary btn-sm w-100" onclick="closeMobilePanels();toggleTheme()" id="themeBtnMobile">☀️</button>
       <button class="btn btn-outline-danger btn-sm w-100 mt-2" onclick="closeMobilePanels();doLogout()" key="logout">退出</button>
     </div>
   </div>
@@ -434,6 +469,23 @@ function toggleLang(){
   lang=lang==='zh'?'en':'zh';localStorage.setItem('ai_platform_lang',lang);
   applyLang();
 }
+function initTheme(){
+  const t=localStorage.getItem('ai_platform_theme')||'dark';
+  document.documentElement.setAttribute('data-bs-theme',t);
+  applyThemeIcon();
+}
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-bs-theme')||'dark';
+  const nxt=cur==='dark'?'light':'dark';
+  localStorage.setItem('ai_platform_theme',nxt);
+  document.documentElement.setAttribute('data-bs-theme',nxt);
+  applyThemeIcon();
+}
+function applyThemeIcon(){
+  const cur=document.documentElement.getAttribute('data-bs-theme')||'dark';
+  const icon=cur==='dark'?'☀️':'🌙';
+  document.querySelectorAll('#themeBtn0,#themeBtn1,#themeBtnMobile').forEach(b=>b.textContent=icon);
+}
 
 // ── State ────────────────────────────────────────────
 let state={token:null,user:null,projects:[],activeProject:null,files:[],activeFile:null,currentPayment:null,selectedModel:'deepseek-chat',selectedFileType:'code'};
@@ -582,12 +634,13 @@ let currentAdminTab='dashboard';
 function adminTab(tab){
   currentAdminTab=tab;
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.toggle('active',t.id==='atab'+tab.charAt(0).toUpperCase()+tab.slice(1)));
-  ['Dashboard','Users','Files','Revenue','System'].forEach(t=>{const el=$('admin'+t);if(el)el.style.display=t.toLowerCase()===tab?'block':'none'});
+  ['Dashboard','Users','Files','Revenue','System','Database'].forEach(t=>{const el=$('admin'+t);if(el)el.style.display=t.toLowerCase()===tab?'block':'none'});
   if(tab==='dashboard')loadDashboard();
   if(tab==='users')loadAdminUsers();
   if(tab==='files'){loadAdminFiles();loadAdminUploadedFiles();loadAdminPublicFiles();}
   if(tab==='revenue')loadAdminRevenue();
   if(tab==='system')loadSystemTab();
+  if(tab==='database')loadDbTables();
 }
 
 function showAdminView(){
@@ -688,40 +741,77 @@ async function loadAdminUsers(){
       <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="setUserApiKey('${u.id}','${esc(u.username)}')" title="设置API Key">🔑</button>
       <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="adjustBalance('${u.id}','${esc(u.username)}',${u.credits})" title="调整余额">💰</button>
       <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="toggleUserTier('${u.id}','${u.model_tier||'free'}')" title="切换模型等级">🔄</button>
-      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="resetUserPw('${u.id}','${esc(u.username)}')" title="重置密码">🔒</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="setUserPassword('${u.id}','${esc(u.username)}')" title="设置密码">🔐</button>
+      <button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="resetUserPw('${u.id}','${esc(u.username)}')" title="随机重置密码">🎲</button>
       <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="delUser('${u.id}','${esc(u.username)}')" title="删除">✕</button>
     </td></tr>`).join('');
 }
 
 async function showUserDetail(uid){
   const d=await api('GET',`/api/admin/users/${uid}/detail`);
+  const u=d.user;
   const panel=$('userDetailPanel');
   panel.classList.remove('d-none');
   panel.innerHTML=`
-    <h6>👤 ${esc(d.user.username)} 详情</h6>
-    <div class="row g-3 small mb-3">
-      <div class="col-sm-4"><span class="text-secondary">Plan:</span> ${d.user.plan}</div>
-      <div class="col-sm-4"><span class="text-secondary">Tier:</span> ${d.user.model_tier}</div>
-      <div class="col-sm-4"><span class="text-secondary">Credits:</span> <span class="text-warning">${Math.round(d.user.credits)}</span></div>
-      <div class="col-sm-4"><span class="text-secondary">Projects:</span> ${d.projects.length}</div>
-      <div class="col-sm-4"><span class="text-secondary">Files:</span> ${d.file_count}</div>
-      <div class="col-sm-4"><span class="text-secondary">Generated:</span> ${d.generated_files.length}</div>
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <h6 class="mb-0">👤 ${esc(u.username)} 详情</h6>
+      <button class="btn-close btn-close-white" onclick="$('userDetailPanel').classList.add('d-none')"></button>
+    </div>
+    <div class="row g-2 small mb-3">
+      <div class="col-sm-3"><span class="text-secondary">ID:</span> <code style="font-size:0.7rem">${u.id}</code></div>
+      <div class="col-sm-3"><span class="text-secondary">Plan:</span> ${u.plan}</div>
+      <div class="col-sm-3"><span class="text-secondary">Tier:</span> ${u.model_tier}</div>
+      <div class="col-sm-3"><span class="text-secondary">Credits:</span> <span class="text-warning">${Math.round(u.credits)}</span></div>
+      <div class="col-sm-3"><span class="text-secondary">Email:</span> ${esc(u.email)}</div>
+      <div class="col-sm-3"><span class="text-secondary">Total Used:</span> ${u.total_credits_used.toFixed(1)}</div>
+      <div class="col-sm-3"><span class="text-secondary">Projects:</span> ${d.projects.length}</div>
+      <div class="col-sm-3"><span class="text-secondary">Files:</span> ${d.file_count} (gen: ${d.generated_files.length})</div>
+      <div class="col-sm-3"><span class="text-secondary">API Key:</span> ${u.has_api_key?'已设置':'未设置'}</div>
+      <div class="col-sm-3"><span class="text-secondary">Admin:</span> ${u.is_admin?'是':'否'}</div>
+      <div class="col-sm-3"><span class="text-secondary">Active:</span> ${u.is_active?'是':'否'}</div>
+      <div class="col-sm-3"><span class="text-secondary">Created:</span> ${new Date(u.created_at+'Z').toLocaleDateString()}</div>
+    </div>
+    <div class="row g-2 small mb-3">
+      <div class="col-12">
+        <span class="text-secondary">密码哈希:</span>
+        <code style="font-size:0.7rem;word-break:break-all">${u.hashed_password||'(无)'}</code>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <button class="btn btn-outline-secondary btn-sm" onclick="setUserPassword('${u.id}','${esc(u.username)}')">🔐 设置密码</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="resetUserPw('${u.id}','${esc(u.username)}')">🎲 随机重置</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="adjustBalance('${u.id}','${esc(u.username)}',${u.credits})">💰 调余额</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="toggleUserTier('${u.id}','${u.model_tier||'free'}')">🔄 切换等级</button>
     </div>
     <div class="row g-3">
       <div class="col-md-6">
-        <h6 class="small text-secondary">📊 Recent Usage</h6>
-        <div class="overflow-auto" style="max-height:200px">${d.usage.slice(0,10).map(u=>`
+        <h6 class="small text-secondary">📊 交互记录 (Usage)</h6>
+        <div class="overflow-auto" style="max-height:200px">${d.usage.slice(0,20).map(u=>`
           <div class="d-flex justify-content-between py-1 border-bottom small">
-            <span>${u.model}</span><span class="text-warning">${u.cost.toFixed(4)} credits</span>
-          </div>`).join('')||'No usage'}</div>
+            <span>${u.model} · ${u.endpoint||'chat'}</span>
+            <span class="text-warning">${u.cost.toFixed(4)} cr</span>
+            <span class="text-secondary" style="font-size:0.7rem">${u.time?new Date(u.time+'Z').toLocaleString():''}</span>
+          </div>`).join('')||'<span class="text-secondary">暂无记录</span>'}</div>
       </div>
       <div class="col-md-6">
-        <h6 class="small text-secondary">💳 Payments</h6>
+        <h6 class="small text-secondary">💳 支付记录</h6>
         <div class="overflow-auto" style="max-height:200px">${d.payments.map(p=>`
           <div class="d-flex justify-content-between py-1 border-bottom small">
             <span>${p.plan} ¥${p.amount}</span>
             <span class="${p.status==='paid'?'text-success':'text-secondary'}">${p.status}</span>
-          </div>`).join('')||'No payments'}</div>
+            <span class="text-secondary" style="font-size:0.7rem">${p.time?new Date(p.time+'Z').toLocaleString():''}</span>
+          </div>`).join('')||'<span class="text-secondary">暂无记录</span>'}</div>
+      </div>
+    </div>
+    <div class="row g-3 mt-2">
+      <div class="col-12">
+        <h6 class="small text-secondary">📄 生成文件</h6>
+        <div class="overflow-auto" style="max-height:150px">${d.generated_files.map(f=>`
+          <div class="d-flex justify-content-between py-1 border-bottom small">
+            <span>${f.type} · ${f.model}</span>
+            <span class="text-warning">${f.credits.toFixed(4)} cr</span>
+            <span class="text-secondary" style="font-size:0.7rem">${f.time?new Date(f.time+'Z').toLocaleString():''}</span>
+          </div>`).join('')||'<span class="text-secondary">暂无记录</span>'}</div>
       </div>
     </div>`;
   panel.scrollIntoView({behavior:'smooth'});
@@ -782,6 +872,88 @@ async function loadSystemTab(){
   }catch(e){}
 }
 
+// ── Database Management ─────────────────────────────
+let dbState={table:'',page:1,total:0,limit:50};
+
+async function loadDbTables(){
+  try{
+    const tables=await api('GET','/api/admin/db/tables');
+    const sel=$('dbTableSelect');
+    sel.innerHTML=tables.map(t=>`<option value="${t.name}">${t.name} (${t.row_count} rows)</option>`).join('');
+    if(tables.length>0){dbState.table=tables[0].name;dbState.page=1;await loadDbTable();}
+  }catch(e){showToast(e.message,true)}
+}
+
+async function loadDbTable(){
+  const tname=$('dbTableSelect').value;
+  if(!tname){return}
+  dbState.table=tname;
+  try{
+    const d=await api('GET',`/api/admin/db/table/${tname}?page=${dbState.page}&limit=${dbState.limit}`);
+    dbState.total=d.total;
+    $('dbTableInfo').textContent=`共 ${d.total} 行 · 第 ${d.page} 页`;
+    $('dbPageInfo').textContent=`${d.page}/${Math.ceil(d.total/dbState.limit)||1}`;
+    $('dbTableHead').innerHTML='<tr>'+d.columns.map(c=>`<th>${c}</th>`).join('')+'<th style="width:80px">操作</th></tr>';
+    $('dbTableBody').innerHTML=d.rows.map(r=>`<tr>${d.columns.map(c=>`<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(String(r[c]??''))}">${esc(String(r[c]??'').slice(0,100))}</td>`).join('')}<td class="d-flex gap-1"><button class="btn btn-outline-secondary btn-sm py-0 px-1" onclick="editDbRow('${tname}','${r[d.columns[0]]}')" title="编辑">✏️</button><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="delDbRow('${tname}','${r[d.columns[0]]}')" title="删除">✕</button></td></tr>`).join('')||'<tr><td colspan="'+(d.columns.length+1)+'" class="text-center text-secondary">无数据</td></tr>';
+  }catch(e){showToast(e.message,true)}
+}
+
+function dbPage(dir){
+  const max=Math.ceil(dbState.total/dbState.limit)||1;
+  dbState.page=Math.max(1,Math.min(max,dbState.page+dir));
+  loadDbTable();
+}
+
+function editDbRow(tname,id){
+  // Collect column names from thead
+  const cols=[...document.querySelectorAll('#dbTableHead th')].map(t=>t.textContent).filter(c=>c!=='操作');
+  // Find the row cells by looking for the button that matches this id
+  const btns=[...document.querySelectorAll('#dbTableBody button[title="编辑"]')];
+  let rowCells=null;
+  for(const btn of btns){
+    const tr=btn.closest('tr');
+    const firstCell=tr.querySelector('td');
+    if(firstCell&&firstCell.textContent===String(id)){
+      rowCells=[...tr.querySelectorAll('td')];
+      break;
+    }
+  }
+  if(!rowCells){showToast('Row not found',true);return}
+  const data={};
+  for(let i=0;i<cols.length;i++){
+    const cur=rowCells[i]?rowCells[i].textContent.trim():'';
+    const v=prompt(`编辑 ${cols[i]}:`,cur.slice(0,200));
+    if(v!==null)data[cols[i]]=v;
+  }
+  if(Object.keys(data).length===0)return;
+  api('PUT',`/api/admin/db/table/${tname}/${id}`,data).then(()=>{showToast('已更新');loadDbTable();}).catch(e=>showToast(e.message,true));
+}
+
+async function delDbRow(tname,id){
+  if(!confirm(`删除 ${tname} 中的记录 ${id}？此操作不可撤销！`))return;
+  try{await api('DELETE',`/api/admin/db/table/${tname}/${id}`);showToast('已删除');loadDbTable();}catch(e){showToast(e.message,true)}
+}
+
+async function execSql(){
+  const sql=$('dbSqlInput').value.trim();
+  if(!sql)return;
+  try{
+    const r=await api('POST','/api/admin/db/sql',{sql});
+    if(r.type==='query'){
+      $('dbSqlInfo').textContent=`${r.row_count} 行`;
+      let html='<table class="table table-sm table-bordered small" style="font-size:0.75rem"><thead><tr>';
+      html+=r.columns.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+      html+=r.rows.map(row=>`<tr>${r.columns.map(c=>`<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(row[c]??'').slice(0,200))}</td>`).join('')}</tr>`).join('');
+      html+='</tbody></table>';
+      $('dbSqlResult').innerHTML=html;
+    }else{
+      $('dbSqlInfo').textContent=`${r.affected} 行受影响`;
+      $('dbSqlResult').innerHTML='';
+      loadDbTable();
+    }
+  }catch(e){showToast(e.message,true)}
+}
+
 async function setUserApiKey(uid,uname){
   const key=prompt(`设置 ${uname} 的 DeepSeek API Key:`);
   if(key===null)return;
@@ -799,8 +971,17 @@ async function toggleUserTier(uid,current){
   await api('PUT',`/api/admin/users/${uid}`,{model_tier:nxt});
   showToast(`Model tier: ${nxt}`);loadAdminUsers();
 }
+async function setUserPassword(uid,uname){
+  const pw=prompt(`为 ${uname} 设置新密码 (最少6位):`);
+  if(pw===null)return;
+  try{
+    await api('POST',`/api/admin/users/${uid}/set-password`,{password:pw});
+    showToast(`密码已设置为: ${pw}`);
+    alert(`${uname} 的新密码: ${pw}`);
+  }catch(e){showToast(e.message,true)}
+}
 async function resetUserPw(uid,uname){
-  if(!confirm(`Reset password for ${uname}?`))return;
+  if(!confirm(`随机重置 ${uname} 的密码?`))return;
   const r=await api('POST',`/api/admin/users/${uid}/reset-password`);
   showToast(`New password: ${r.new_password}`);alert(`New password for ${uname}: ${r.new_password}`);
 }
@@ -1005,6 +1186,7 @@ async function loadWelcome(){
 }
 
 // Init — restore session if valid token exists
+initTheme();
 (async function(){
   const savedToken = localStorage.getItem('ai_platform_token');
   if (savedToken) {

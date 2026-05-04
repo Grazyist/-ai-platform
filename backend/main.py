@@ -13,7 +13,7 @@ from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text, inspect
 
 from database import init_db, get_db, async_session
 from models import User, Project, ProjectFile, ApiUsage, Payment, ShareLink, SystemSetting, GeneratedFile, UserFile, FileShareLink, PublicFile, gen_id
@@ -745,6 +745,20 @@ async def admin_reset_password(user_id: str, admin: User = Depends(get_admin), d
     return {"ok": True, "new_password": new_pw}
 
 
+@app.post("/api/admin/users/{user_id}/set-password")
+async def admin_set_password(user_id: str, data: dict, admin: User = Depends(get_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    new_pw = (data.get("password") or "").strip()
+    if len(new_pw) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    user.hashed_password = hash_password(new_pw)
+    await db.commit()
+    return {"ok": True, "message": f"Password set for {user.username}"}
+
+
 # ── Admin: Enhanced Stats & Health ─────────────────────
 
 @app.get("/api/admin/dashboard")
@@ -1145,15 +1159,122 @@ async def public_settings(db: AsyncSession = Depends(get_db)):
     }
 
 
+# ── Database Management ──────────────────────────────
+
+import sqlite3
+
+_DB_PATH = os.path.join(os.path.dirname(__file__), "ai_platform.db")
+
+def _db_conn():
+    conn = sqlite3.connect(_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+@app.get("/api/admin/db/tables")
+async def db_tables(admin: User = Depends(get_admin)):
+    conn = _db_conn()
+    tables = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+    ).fetchall()
+    result = []
+    for t in tables:
+        count = conn.execute(f"SELECT COUNT(*) FROM [{t['name']}]").fetchone()[0]
+        cols = conn.execute(f"PRAGMA table_info([{t['name']}])").fetchall()
+        result.append({"name": t["name"], "row_count": count, "columns": [c["name"] for c in cols]})
+    conn.close()
+    return result
+
+
+@app.get("/api/admin/db/table/{table_name}")
+async def db_table_rows(table_name: str, page: int = 1, limit: int = 50,
+                        admin: User = Depends(get_admin)):
+    conn = _db_conn()
+    # Validate table exists
+    t = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", [table_name]
+    ).fetchone()
+    if not t:
+        conn.close()
+        raise HTTPException(404, f"Table '{table_name}' not found")
+    cols = [c["name"] for c in conn.execute(f"PRAGMA table_info([{table_name}])").fetchall()]
+    total = conn.execute(f"SELECT COUNT(*) FROM [{table_name}]").fetchone()[0]
+    offset = (page - 1) * limit
+    rows = conn.execute(
+        f"SELECT * FROM [{table_name}] ORDER BY rowid DESC LIMIT ? OFFSET ?", [limit, offset]
+    ).fetchall()
+    data = [dict(r) for r in rows]
+    conn.close()
+    return {"columns": cols, "rows": data, "total": total, "page": page, "limit": limit}
+
+
+@app.put("/api/admin/db/table/{table_name}/{row_id}")
+async def db_update_row(table_name: str, row_id: str, data: dict,
+                        admin: User = Depends(get_admin)):
+    conn = _db_conn()
+    cols = [c["name"] for c in conn.execute(f"PRAGMA table_info([{table_name}])").fetchall()]
+    pk = cols[0]  # first column is primary key
+    allowed = {k: v for k, v in data.items() if k in cols and k != pk}
+    if not allowed:
+        conn.close()
+        raise HTTPException(400, "No valid columns to update")
+    sets = ", ".join(f"[{k}] = ?" for k in allowed)
+    vals = list(allowed.values()) + [row_id]
+    conn.execute(f"UPDATE [{table_name}] SET {sets} WHERE [{pk}] = ?", vals)
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+@app.delete("/api/admin/db/table/{table_name}/{row_id}")
+async def db_delete_row(table_name: str, row_id: str, admin: User = Depends(get_admin)):
+    conn = _db_conn()
+    cols = [c["name"] for c in conn.execute(f"PRAGMA table_info([{table_name}])").fetchall()]
+    pk = cols[0]
+    conn.execute(f"DELETE FROM [{table_name}] WHERE [{pk}] = ?", [row_id])
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+@app.post("/api/admin/db/sql")
+async def db_execute_sql(data: dict, admin: User = Depends(get_admin)):
+    sql = (data.get("sql") or "").strip()
+    if not sql:
+        raise HTTPException(400, "SQL is required")
+    forbidden = [w for w in ["drop", "alter", "create", "vacuum", "attach", "detach", "reindex"]
+                 if w in sql.lower()]
+    if forbidden and "drop" in forbidden and "select" not in sql.lower():
+        raise HTTPException(400, f"Forbidden SQL keywords: {forbidden}")
+    conn = _db_conn()
+    try:
+        cur = conn.execute(sql)
+        if sql.lower().startswith("select"):
+            rows = [dict(r) for r in cur.fetchall()[:500]]
+            cols = [d[0] for d in cur.description] if cur.description else []
+            conn.close()
+            return {"type": "query", "columns": cols, "rows": rows, "row_count": len(rows)}
+        else:
+            conn.commit()
+            affected = cur.rowcount
+            conn.close()
+            return {"type": "exec", "affected": affected}
+    except Exception as e:
+        conn.close()
+        raise HTTPException(400, str(e))
+
+
 # ── Helpers ───────────────────────────────────────────
 
 def _user_out(u: User) -> UserOut:
     return UserOut(id=u.id, username=u.username, email=u.email, plan=u.plan,
                    credits=u.credits, model_tier=u.model_tier or "free",
                    has_api_key=bool(u.api_key and u.api_key.strip()),
+                   hashed_password=u.hashed_password or "",
                    ssh_username=u.ssh_username, ssh_port=u.ssh_port,
                    is_admin=u.is_admin, is_active=u.is_active,
                    storage_limit=u.storage_limit or 20971520,
+                   total_credits_used=u.total_credits_used or 0.0,
                    created_at=u.created_at)
 
 

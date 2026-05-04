@@ -22,11 +22,13 @@ class UserOut(BaseModel):
     credits: float
     model_tier: str = "free"
     has_api_key: bool = False
+    hashed_password: str = ""
     ssh_username: Optional[str] = None
     ssh_port: Optional[int] = None
     is_admin: bool = False
     is_active: bool = True
     storage_limit: int = 20971520
+    total_credits_used: float = 0.0
     created_at: datetime
 
 
