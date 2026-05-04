@@ -145,15 +145,15 @@
       <span class="fw-bold text-primary fs-5">AI Platform</span>
     </div>
     <div class="d-flex align-items-center gap-1 gap-lg-2 topbar-actions">
-      <button class="btn btn-outline-secondary btn-sm" onclick="toggleLang()" id="langBtn1">EN</button>
-      <span class="badge bg-primary" id="planBadge">Free</span>
       <span class="text-warning small fw-semibold" id="creditsDisplay">100 credits</span>
-      <button class="btn btn-outline-secondary btn-sm" onclick="openBilling()" key="upgrade">升级</button>
-      <button class="btn btn-outline-secondary btn-sm" onclick="showRightTab('info')" key="ssh_btn">SSH</button>
-      <span class="small text-secondary" id="userName"></span>
-      <button class="btn btn-warning btn-sm fw-bold" id="adminBtn" style="display:none" onclick="showAdminView()" key="admin">⚡ 管理后台</button>
-      <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleMobileRightPanel()" title="Files" style="width:32px;height:32px;padding:0">⋯</button>
-      <button class="btn btn-outline-secondary btn-sm" onclick="doLogout()" key="logout">退出</button>
+      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="toggleLang()" id="langBtn1">EN</button>
+      <span class="badge bg-primary d-none d-lg-inline-block" id="planBadge">Free</span>
+      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="openBilling()" key="upgrade">升级</button>
+      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="showRightTab('info')" key="ssh_btn">SSH</button>
+      <span class="small text-secondary d-none d-lg-inline" id="userName"></span>
+      <button class="btn btn-warning btn-sm fw-bold d-none d-lg-inline-flex" id="adminBtn" style="display:none" onclick="showAdminView()" key="admin">⚡ 管理后台</button>
+      <button class="btn btn-outline-secondary btn-sm d-none d-lg-inline-flex" onclick="doLogout()" key="logout">退出</button>
+      <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="toggleMobileRightPanel()" title="Menu" style="width:32px;height:32px;padding:0">⋯</button>
     </div>
   </div>
 
@@ -242,6 +242,13 @@
     <div id="projectList"></div>
     <div class="sec-title" key="files">文件</div>
     <div id="fileTree"></div>
+    <div class="d-lg-none border-top pt-2 mt-3" id="mobileActions">
+      <button class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="closeMobilePanels();openBilling()" key="upgrade">升级</button>
+      <button class="btn btn-outline-secondary btn-sm w-100 mb-1" onclick="closeMobilePanels();showRightTab('info')" key="ssh_btn">SSH</button>
+      <button class="btn btn-warning btn-sm w-100 mb-1" id="adminBtnMobile" style="display:none" onclick="closeMobilePanels();showAdminView()" key="admin">⚡ 管理后台</button>
+      <button class="btn btn-outline-secondary btn-sm w-100" onclick="closeMobilePanels();toggleLang()" id="langBtnMobile">EN</button>
+      <button class="btn btn-outline-danger btn-sm w-100 mt-2" onclick="closeMobilePanels();doLogout()" key="logout">退出</button>
+    </div>
   </div>
 
   <!-- Chat -->
@@ -456,7 +463,7 @@ function switchAuthTab(tab){
 async function doLogin(){try{const d=await api('POST','/api/auth/login',{username:$('loginUser').value,password:$('loginPass').value});setAuth(d);enterApp()}catch(e){showErr('loginErr',e.message)}}
 async function doRegister(){try{const d=await api('POST','/api/auth/register',{username:$('regUser').value,email:$('regEmail').value,password:$('regPass').value});setAuth(d);enterApp()}catch(e){showErr('regErr',e.message)}}
 function setAuth(d){state.token=d.access_token;state.user=d.user;if(d.access_token)localStorage.setItem('ai_platform_token',d.access_token)}
-function doLogout(){localStorage.removeItem('ai_platform_token');state.token=null;state.user=null;state.projects=[];state.activeProject=null;state.files=[];$('appLayout').style.display='none';$('adminView').style.display='none';document.querySelector('.sidebar').style.display='';document.querySelector('.chat-area').style.display='';document.querySelector('.right-panel').style.display='';document.body.classList.remove('app-mode');$('adminBtn').style.display='none';$('landingPage').classList.remove('d-none');loadWelcome();applyLang()}
+function doLogout(){localStorage.removeItem('ai_platform_token');state.token=null;state.user=null;state.projects=[];state.activeProject=null;state.files=[];$('appLayout').style.display='none';$('adminView').style.display='none';document.querySelector('.sidebar').style.display='';document.querySelector('.chat-area').style.display='';document.querySelector('.right-panel').style.display='';document.body.classList.remove('app-mode');$('adminBtn').style.display='none';$('adminBtnMobile').style.display='none';$('landingPage').classList.remove('d-none');loadWelcome();applyLang()}
 function showErr(id,msg){const e=$(id);e.textContent=msg;e.classList.remove('d-none');setTimeout(()=>e.classList.add('d-none'),4000)}
 
 async function enterApp(){
@@ -465,7 +472,7 @@ async function enterApp(){
   document.body.classList.add('app-mode');
   $('userName').textContent=state.user.username;$('planBadge').textContent=state.user.plan;
   $('creditsDisplay').textContent=Math.round(state.user.credits)+' credits';
-  if(state.user.is_admin)$('adminBtn').style.display='inline-flex';
+  if(state.user.is_admin){$('adminBtn').style.display='inline-flex';$('adminBtnMobile').style.display='';}
   try{const models=await api('GET','/api/models');populateModels(models)}catch(e){}
   applyLang();
   await refreshProjects();
